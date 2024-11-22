@@ -1,0 +1,12 @@
+/Users/ostapkilbasovych/Desktop/RestQFramework/core/src/main/java/com/restq/InitDB.java
+/Users/ostapkilbasovych/Desktop/RestQFramework/core/src/main/java/com/restq/core/DBDataLoad/DatabaseLoaderConfig.java
+/Users/ostapkilbasovych/Desktop/RestQFramework/core/src/main/java/com/restq/core/Models/Customer/Customer.java
+/Users/ostapkilbasovych/Desktop/RestQFramework/core/src/main/java/com/restq/core/Models/LineItem/LineItem.java
+/Users/ostapkilbasovych/Desktop/RestQFramework/core/src/main/java/com/restq/core/Models/LineItem/LineItemId.java
+/Users/ostapkilbasovych/Desktop/RestQFramework/core/src/main/java/com/restq/core/Models/Nation/Nation.java
+/Users/ostapkilbasovych/Desktop/RestQFramework/core/src/main/java/com/restq/core/Models/Orders/Order.java
+/Users/ostapkilbasovych/Desktop/RestQFramework/core/src/main/java/com/restq/core/Models/Part/Part.java
+/Users/ostapkilbasovych/Desktop/RestQFramework/core/src/main/java/com/restq/core/Models/PartSupp/PartSupp.java
+/Users/ostapkilbasovych/Desktop/RestQFramework/core/src/main/java/com/restq/core/Models/PartSupp/PartSuppId.java
+/Users/ostapkilbasovych/Desktop/RestQFramework/core/src/main/java/com/restq/core/Models/Region/Region.java
+/Users/ostapkilbasovych/Desktop/RestQFramework/core/src/main/java/com/restq/core/Models/Supplier/Supplier.java

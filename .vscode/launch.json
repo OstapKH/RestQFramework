@@ -1,0 +1,46 @@
+{
+    "configurations": [
+        {
+            "type": "java",
+            "name": "InitDB",
+            "request": "launch",
+            "mainClass": "com.restq.InitDB",
+            "projectName": "core",
+            "vmArgs": " -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=51595 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dspring.jmx.enabled=true -Djava.rmi.server.hostname=localhost -Dspring.application.admin.enabled=true -Dspring.boot.project.name=core"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-Application<core>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.restq.Application",
+            "projectName": "core",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env",
+            "env": {
+                "JAVA_HOME": "/Users/ostapkilbasovych/Library/Java/JavaVirtualMachines/openjdk-21.0.2/Contents/Home"
+            }
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-APIApplication<api-http>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.restq.APIApplication",
+            "projectName": "api-http",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env",
+            "vmArgs": " -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=52260 -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dspring.jmx.enabled=true -Djava.rmi.server.hostname=localhost -Dspring.application.admin.enabled=true -Dspring.boot.project.name=api-http"
+        },
+        {
+            "type": "java",
+            "name": "Spring Boot-ApiBenchmark<api-http>",
+            "request": "launch",
+            "cwd": "${workspaceFolder}",
+            "mainClass": "com.restq.api_http.Benchmark.ApiBenchmark",
+            "projectName": "api-http",
+            "args": "",
+            "envFile": "${workspaceFolder}/.env"
+        }
+    ]
+}

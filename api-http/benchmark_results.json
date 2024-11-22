@@ -1,0 +1,21 @@
+{
+  "startTimestamp": 1732187743651,
+  "currentTimestamp": 1732187919910,
+  "elapsedTime": 176259,
+  "terminals": 8,
+  "latencyDistribution": {
+    "minimumLatency": 1859875,
+    "maximumLatency": 643651125,
+    "medianLatency": 4632708,
+    "percentiles": {
+      "90th Percentile": 9377875,
+      "25th Percentile": 3662167,
+      "75th Percentile": 6131417,
+      "99th Percentile": 33066708,
+      "95th Percentile": 13076750
+    }
+  },
+  "throughput": 1259.29456084512,
+  "goodput": 1259.29456084512,
+  "expectedDuration": 60000
+}

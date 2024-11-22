@@ -1,0 +1,629 @@
+2024-11-14 00:08:11 [background-preinit] INFO  o.h.validator.internal.util.Version - HV000001: Hibernate Validator 8.0.1.Final
+2024-11-14 00:08:11 [restartedMain] INFO  com.restq.APIApplication - Starting APIApplication using Java 21.0.2 with PID 82854 (/Users/ostapkilbasovych/Desktop/RestQFramework/api-http/target/classes started by ostapkilbasovych in /Users/ostapkilbasovych/Desktop/RestQFramework)
+2024-11-14 00:08:11 [restartedMain] INFO  com.restq.APIApplication - No active profile set, falling back to 1 default profile: "default"
+2024-11-14 00:08:11 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2024-11-14 00:08:11 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2024-11-14 00:08:12 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2024-11-14 00:08:12 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 26 ms. Found 4 JPA repository interfaces.
+2024-11-14 00:08:12 [restartedMain] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8086 (http)
+2024-11-14 00:08:12 [restartedMain] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8086"]
+2024-11-14 00:08:12 [restartedMain] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2024-11-14 00:08:12 [restartedMain] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.25]
+2024-11-14 00:08:12 [restartedMain] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2024-11-14 00:08:12 [restartedMain] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 867 ms
+2024-11-14 00:08:12 [restartedMain] INFO  o.h.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
+2024-11-14 00:08:12 [restartedMain] INFO  org.hibernate.Version - HHH000412: Hibernate ORM core version 6.5.2.Final
+2024-11-14 00:08:12 [restartedMain] INFO  o.h.c.i.RegionFactoryInitiator - HHH000026: Second-level cache disabled
+2024-11-14 00:08:13 [restartedMain] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2024-11-14 00:08:13 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2024-11-14 00:08:13 [restartedMain] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@5d6ee86a
+2024-11-14 00:08:13 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2024-11-14 00:08:13 [restartedMain] INFO  o.h.e.t.j.p.i.JtaPlatformInitiator - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2024-11-14 00:08:13 [restartedMain] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2024-11-14 00:08:14 [restartedMain] INFO  o.s.d.j.r.query.QueryEnhancerFactory - Hibernate is in classpath; If applicable, HQL parser will be used.
+2024-11-14 00:08:14 [restartedMain] WARN  o.s.b.a.o.j.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2024-11-14 00:08:14 [restartedMain] INFO  o.s.b.d.a.OptionalLiveReloadServer - LiveReload server is running on port 35729
+2024-11-14 00:08:14 [restartedMain] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8086"]
+2024-11-14 00:08:14 [restartedMain] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8086 (http) with context path ''
+2024-11-14 00:08:14 [restartedMain] INFO  com.restq.APIApplication - Started APIApplication in 3.19 seconds (process running for 3.678)
+2024-11-14 00:08:14 [restartedMain] INFO  c.r.c.D.DatabaseLoaderConfig - Sample data loading is disabled
+2024-11-14 00:08:54 [SpringApplicationShutdownHook] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2024-11-14 00:08:54 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2024-11-14 00:08:54 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2024-11-14 00:09:10 [background-preinit] INFO  o.h.validator.internal.util.Version - HV000001: Hibernate Validator 8.0.1.Final
+2024-11-14 00:09:10 [restartedMain] INFO  com.restq.APIApplication - Starting APIApplication using Java 21.0.2 with PID 83526 (/Users/ostapkilbasovych/Desktop/RestQFramework/api-http/target/classes started by ostapkilbasovych in /Users/ostapkilbasovych/Desktop/RestQFramework)
+2024-11-14 00:09:10 [restartedMain] INFO  com.restq.APIApplication - No active profile set, falling back to 1 default profile: "default"
+2024-11-14 00:09:10 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2024-11-14 00:09:10 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2024-11-14 00:09:10 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2024-11-14 00:09:10 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 30 ms. Found 4 JPA repository interfaces.
+2024-11-14 00:09:11 [restartedMain] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8086 (http)
+2024-11-14 00:09:11 [restartedMain] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8086"]
+2024-11-14 00:09:11 [restartedMain] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2024-11-14 00:09:11 [restartedMain] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.25]
+2024-11-14 00:09:11 [restartedMain] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2024-11-14 00:09:11 [restartedMain] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 788 ms
+2024-11-14 00:09:11 [restartedMain] INFO  o.h.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
+2024-11-14 00:09:11 [restartedMain] INFO  org.hibernate.Version - HHH000412: Hibernate ORM core version 6.5.2.Final
+2024-11-14 00:09:11 [restartedMain] INFO  o.h.c.i.RegionFactoryInitiator - HHH000026: Second-level cache disabled
+2024-11-14 00:09:11 [restartedMain] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2024-11-14 00:09:11 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2024-11-14 00:09:11 [restartedMain] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@1aa5a898
+2024-11-14 00:09:11 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2024-11-14 00:09:11 [restartedMain] INFO  o.h.e.t.j.p.i.JtaPlatformInitiator - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2024-11-14 00:09:12 [restartedMain] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2024-11-14 00:09:12 [restartedMain] INFO  o.s.d.j.r.query.QueryEnhancerFactory - Hibernate is in classpath; If applicable, HQL parser will be used.
+2024-11-14 00:09:12 [restartedMain] WARN  o.s.b.a.o.j.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2024-11-14 00:09:12 [restartedMain] INFO  o.s.b.d.a.OptionalLiveReloadServer - LiveReload server is running on port 35729
+2024-11-14 00:09:12 [restartedMain] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8086"]
+2024-11-14 00:09:12 [restartedMain] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8086 (http) with context path ''
+2024-11-14 00:09:12 [restartedMain] INFO  com.restq.APIApplication - Started APIApplication in 2.762 seconds (process running for 3.197)
+2024-11-14 00:09:12 [restartedMain] INFO  c.r.c.D.DatabaseLoaderConfig - Sample data loading is disabled
+2024-11-14 00:09:15 [SpringApplicationShutdownHook] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2024-11-14 00:09:15 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2024-11-14 00:09:15 [SpringApplicationShutdownHook] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
+2024-11-14 00:09:49 [background-preinit] INFO  o.h.validator.internal.util.Version - HV000001: Hibernate Validator 8.0.1.Final
+2024-11-14 00:09:49 [restartedMain] INFO  com.restq.APIApplication - Starting APIApplication using Java 21.0.2 with PID 83985 (/Users/ostapkilbasovych/Desktop/RestQFramework/api-http/target/classes started by ostapkilbasovych in /Users/ostapkilbasovych/Desktop/RestQFramework)
+2024-11-14 00:09:49 [restartedMain] INFO  com.restq.APIApplication - No active profile set, falling back to 1 default profile: "default"
+2024-11-14 00:09:49 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2024-11-14 00:09:49 [restartedMain] INFO  o.s.b.d.e.DevToolsPropertyDefaultsPostProcessor - For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2024-11-14 00:09:50 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2024-11-14 00:09:50 [restartedMain] INFO  o.s.d.r.c.RepositoryConfigurationDelegate - Finished Spring Data repository scanning in 26 ms. Found 4 JPA repository interfaces.
+2024-11-14 00:09:50 [restartedMain] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat initialized with port 8086 (http)
+2024-11-14 00:09:50 [restartedMain] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8086"]
+2024-11-14 00:09:50 [restartedMain] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2024-11-14 00:09:50 [restartedMain] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.25]
+2024-11-14 00:09:50 [restartedMain] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2024-11-14 00:09:50 [restartedMain] INFO  o.s.b.w.s.c.ServletWebServerApplicationContext - Root WebApplicationContext: initialization completed in 750 ms
+2024-11-14 00:09:50 [restartedMain] INFO  o.h.jpa.internal.util.LogHelper - HHH000204: Processing PersistenceUnitInfo [name: default]
+2024-11-14 00:09:50 [restartedMain] INFO  org.hibernate.Version - HHH000412: Hibernate ORM core version 6.5.2.Final
+2024-11-14 00:09:50 [restartedMain] INFO  o.h.c.i.RegionFactoryInitiator - HHH000026: Second-level cache disabled
+2024-11-14 00:09:50 [restartedMain] INFO  o.s.o.j.p.SpringPersistenceUnitInfo - No LoadTimeWeaver setup: ignoring JPA class transformer
+2024-11-14 00:09:50 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Starting...
+2024-11-14 00:09:50 [restartedMain] INFO  com.zaxxer.hikari.pool.HikariPool - HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@31d69165
+2024-11-14 00:09:50 [restartedMain] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Start completed.
+2024-11-14 00:09:51 [restartedMain] INFO  o.h.e.t.j.p.i.JtaPlatformInitiator - HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2024-11-14 00:09:51 [restartedMain] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Initialized JPA EntityManagerFactory for persistence unit 'default'
+2024-11-14 00:09:51 [restartedMain] INFO  o.s.d.j.r.query.QueryEnhancerFactory - Hibernate is in classpath; If applicable, HQL parser will be used.
+2024-11-14 00:09:52 [restartedMain] WARN  o.s.b.a.o.j.JpaBaseConfiguration$JpaWebConfiguration - spring.jpa.open-in-view is enabled by default. Therefore, database queries may be performed during view rendering. Explicitly configure spring.jpa.open-in-view to disable this warning
+2024-11-14 00:09:52 [restartedMain] INFO  o.s.b.d.a.OptionalLiveReloadServer - LiveReload server is running on port 35729
+2024-11-14 00:09:52 [restartedMain] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8086"]
+2024-11-14 00:09:52 [restartedMain] INFO  o.s.b.w.e.tomcat.TomcatWebServer - Tomcat started on port 8086 (http) with context path ''
+2024-11-14 00:09:52 [restartedMain] INFO  com.restq.APIApplication - Started APIApplication in 2.929 seconds (process running for 3.502)
+2024-11-14 00:09:52 [restartedMain] INFO  c.r.c.D.DatabaseLoaderConfig - Sample data loading is disabled
+2024-11-14 00:10:15 [http-nio-8086-exec-2] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2024-11-14 00:10:15 [http-nio-8086-exec-2] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2024-11-14 00:10:15 [http-nio-8086-exec-2] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 4 ms
+2024-11-14 00:10:15 [http-nio-8086-exec-2] INFO  c.r.a.C.RequestLoggingInterceptor - API call received at: 2024-11-13T22:10:15.709668Z
+2024-11-14 00:10:15 [http-nio-8086-exec-2] DEBUG org.hibernate.SQL - 
+    select
+        li1_0.l_returnflag,
+        li1_0.l_linestatus,
+        sum(li1_0.l_quantity),
+        sum(li1_0.l_extendedprice),
+        sum((li1_0.l_extendedprice*(1-li1_0.l_discount))),
+        sum(((li1_0.l_extendedprice*(1-li1_0.l_discount))*(1+li1_0.l_tax))),
+        avg(li1_0.l_quantity),
+        avg(li1_0.l_extendedprice),
+        avg(li1_0.l_discount),
+        count(li1_0.l_orderkey) 
+    from
+        lineitem li1_0 
+    where
+        li1_0.l_shipdate<=? 
+    group by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus 
+    order by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus
+2024-11-14 00:10:17 [http-nio-8086-exec-2] INFO  c.r.a.C.RequestLoggingInterceptor - API response sent at: 2024-11-13T22:10:17.215761Z, Duration: 1506 ms
+2024-11-14 00:10:18 [http-nio-8086-exec-3] INFO  c.r.a.C.RequestLoggingInterceptor - API call received at: 2024-11-13T22:10:18.071959Z
+2024-11-14 00:10:18 [http-nio-8086-exec-3] DEBUG org.hibernate.SQL - 
+    select
+        li1_0.l_returnflag,
+        li1_0.l_linestatus,
+        sum(li1_0.l_quantity),
+        sum(li1_0.l_extendedprice),
+        sum((li1_0.l_extendedprice*(1-li1_0.l_discount))),
+        sum(((li1_0.l_extendedprice*(1-li1_0.l_discount))*(1+li1_0.l_tax))),
+        avg(li1_0.l_quantity),
+        avg(li1_0.l_extendedprice),
+        avg(li1_0.l_discount),
+        count(li1_0.l_orderkey) 
+    from
+        lineitem li1_0 
+    where
+        li1_0.l_shipdate<=? 
+    group by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus 
+    order by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus
+2024-11-14 00:10:18 [http-nio-8086-exec-3] INFO  c.r.a.C.RequestLoggingInterceptor - API response sent at: 2024-11-13T22:10:18.418528Z, Duration: 347 ms
+2024-11-14 00:10:19 [http-nio-8086-exec-4] INFO  c.r.a.C.RequestLoggingInterceptor - API call received at: 2024-11-13T22:10:19.008911Z
+2024-11-14 00:10:19 [http-nio-8086-exec-4] DEBUG org.hibernate.SQL - 
+    select
+        li1_0.l_returnflag,
+        li1_0.l_linestatus,
+        sum(li1_0.l_quantity),
+        sum(li1_0.l_extendedprice),
+        sum((li1_0.l_extendedprice*(1-li1_0.l_discount))),
+        sum(((li1_0.l_extendedprice*(1-li1_0.l_discount))*(1+li1_0.l_tax))),
+        avg(li1_0.l_quantity),
+        avg(li1_0.l_extendedprice),
+        avg(li1_0.l_discount),
+        count(li1_0.l_orderkey) 
+    from
+        lineitem li1_0 
+    where
+        li1_0.l_shipdate<=? 
+    group by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus 
+    order by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus
+2024-11-14 00:10:19 [http-nio-8086-exec-4] INFO  c.r.a.C.RequestLoggingInterceptor - API response sent at: 2024-11-13T22:10:19.236029Z, Duration: 228 ms
+2024-11-14 00:10:19 [http-nio-8086-exec-5] INFO  c.r.a.C.RequestLoggingInterceptor - API call received at: 2024-11-13T22:10:19.781484Z
+2024-11-14 00:10:19 [http-nio-8086-exec-5] DEBUG org.hibernate.SQL - 
+    select
+        li1_0.l_returnflag,
+        li1_0.l_linestatus,
+        sum(li1_0.l_quantity),
+        sum(li1_0.l_extendedprice),
+        sum((li1_0.l_extendedprice*(1-li1_0.l_discount))),
+        sum(((li1_0.l_extendedprice*(1-li1_0.l_discount))*(1+li1_0.l_tax))),
+        avg(li1_0.l_quantity),
+        avg(li1_0.l_extendedprice),
+        avg(li1_0.l_discount),
+        count(li1_0.l_orderkey) 
+    from
+        lineitem li1_0 
+    where
+        li1_0.l_shipdate<=? 
+    group by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus 
+    order by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus
+2024-11-14 00:10:19 [http-nio-8086-exec-5] INFO  c.r.a.C.RequestLoggingInterceptor - API response sent at: 2024-11-13T22:10:19.996405Z, Duration: 215 ms
+2024-11-14 00:10:20 [http-nio-8086-exec-6] INFO  c.r.a.C.RequestLoggingInterceptor - API call received at: 2024-11-13T22:10:20.456865Z
+2024-11-14 00:10:20 [http-nio-8086-exec-6] DEBUG org.hibernate.SQL - 
+    select
+        li1_0.l_returnflag,
+        li1_0.l_linestatus,
+        sum(li1_0.l_quantity),
+        sum(li1_0.l_extendedprice),
+        sum((li1_0.l_extendedprice*(1-li1_0.l_discount))),
+        sum(((li1_0.l_extendedprice*(1-li1_0.l_discount))*(1+li1_0.l_tax))),
+        avg(li1_0.l_quantity),
+        avg(li1_0.l_extendedprice),
+        avg(li1_0.l_discount),
+        count(li1_0.l_orderkey) 
+    from
+        lineitem li1_0 
+    where
+        li1_0.l_shipdate<=? 
+    group by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus 
+    order by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus
+2024-11-14 00:10:20 [http-nio-8086-exec-6] INFO  c.r.a.C.RequestLoggingInterceptor - API response sent at: 2024-11-13T22:10:20.626516Z, Duration: 170 ms
+2024-11-14 00:10:21 [http-nio-8086-exec-7] INFO  c.r.a.C.RequestLoggingInterceptor - API call received at: 2024-11-13T22:10:21.116942Z
+2024-11-14 00:10:21 [http-nio-8086-exec-7] DEBUG org.hibernate.SQL - 
+    select
+        li1_0.l_returnflag,
+        li1_0.l_linestatus,
+        sum(li1_0.l_quantity),
+        sum(li1_0.l_extendedprice),
+        sum((li1_0.l_extendedprice*(1-li1_0.l_discount))),
+        sum(((li1_0.l_extendedprice*(1-li1_0.l_discount))*(1+li1_0.l_tax))),
+        avg(li1_0.l_quantity),
+        avg(li1_0.l_extendedprice),
+        avg(li1_0.l_discount),
+        count(li1_0.l_orderkey) 
+    from
+        lineitem li1_0 
+    where
+        li1_0.l_shipdate<=? 
+    group by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus 
+    order by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus
+2024-11-14 00:10:21 [http-nio-8086-exec-7] INFO  c.r.a.C.RequestLoggingInterceptor - API response sent at: 2024-11-13T22:10:21.293628Z, Duration: 177 ms
+2024-11-14 00:10:21 [http-nio-8086-exec-8] INFO  c.r.a.C.RequestLoggingInterceptor - API call received at: 2024-11-13T22:10:21.704598Z
+2024-11-14 00:10:21 [http-nio-8086-exec-8] DEBUG org.hibernate.SQL - 
+    select
+        li1_0.l_returnflag,
+        li1_0.l_linestatus,
+        sum(li1_0.l_quantity),
+        sum(li1_0.l_extendedprice),
+        sum((li1_0.l_extendedprice*(1-li1_0.l_discount))),
+        sum(((li1_0.l_extendedprice*(1-li1_0.l_discount))*(1+li1_0.l_tax))),
+        avg(li1_0.l_quantity),
+        avg(li1_0.l_extendedprice),
+        avg(li1_0.l_discount),
+        count(li1_0.l_orderkey) 
+    from
+        lineitem li1_0 
+    where
+        li1_0.l_shipdate<=? 
+    group by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus 
+    order by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus
+2024-11-14 00:10:21 [http-nio-8086-exec-8] INFO  c.r.a.C.RequestLoggingInterceptor - API response sent at: 2024-11-13T22:10:21.878004Z, Duration: 174 ms
+2024-11-14 00:10:22 [http-nio-8086-exec-9] INFO  c.r.a.C.RequestLoggingInterceptor - API call received at: 2024-11-13T22:10:22.344213Z
+2024-11-14 00:10:22 [http-nio-8086-exec-9] DEBUG org.hibernate.SQL - 
+    select
+        li1_0.l_returnflag,
+        li1_0.l_linestatus,
+        sum(li1_0.l_quantity),
+        sum(li1_0.l_extendedprice),
+        sum((li1_0.l_extendedprice*(1-li1_0.l_discount))),
+        sum(((li1_0.l_extendedprice*(1-li1_0.l_discount))*(1+li1_0.l_tax))),
+        avg(li1_0.l_quantity),
+        avg(li1_0.l_extendedprice),
+        avg(li1_0.l_discount),
+        count(li1_0.l_orderkey) 
+    from
+        lineitem li1_0 
+    where
+        li1_0.l_shipdate<=? 
+    group by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus 
+    order by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus
+2024-11-14 00:10:22 [http-nio-8086-exec-9] INFO  c.r.a.C.RequestLoggingInterceptor - API response sent at: 2024-11-13T22:10:22.513334Z, Duration: 169 ms
+2024-11-14 00:10:22 [http-nio-8086-exec-10] INFO  c.r.a.C.RequestLoggingInterceptor - API call received at: 2024-11-13T22:10:22.899153Z
+2024-11-14 00:10:22 [http-nio-8086-exec-10] DEBUG org.hibernate.SQL - 
+    select
+        li1_0.l_returnflag,
+        li1_0.l_linestatus,
+        sum(li1_0.l_quantity),
+        sum(li1_0.l_extendedprice),
+        sum((li1_0.l_extendedprice*(1-li1_0.l_discount))),
+        sum(((li1_0.l_extendedprice*(1-li1_0.l_discount))*(1+li1_0.l_tax))),
+        avg(li1_0.l_quantity),
+        avg(li1_0.l_extendedprice),
+        avg(li1_0.l_discount),
+        count(li1_0.l_orderkey) 
+    from
+        lineitem li1_0 
+    where
+        li1_0.l_shipdate<=? 
+    group by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus 
+    order by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus
+2024-11-14 00:10:23 [http-nio-8086-exec-10] INFO  c.r.a.C.RequestLoggingInterceptor - API response sent at: 2024-11-13T22:10:23.067858Z, Duration: 168 ms
+2024-11-14 00:10:23 [http-nio-8086-exec-1] INFO  c.r.a.C.RequestLoggingInterceptor - API call received at: 2024-11-13T22:10:23.567483Z
+2024-11-14 00:10:23 [http-nio-8086-exec-1] DEBUG org.hibernate.SQL - 
+    select
+        li1_0.l_returnflag,
+        li1_0.l_linestatus,
+        sum(li1_0.l_quantity),
+        sum(li1_0.l_extendedprice),
+        sum((li1_0.l_extendedprice*(1-li1_0.l_discount))),
+        sum(((li1_0.l_extendedprice*(1-li1_0.l_discount))*(1+li1_0.l_tax))),
+        avg(li1_0.l_quantity),
+        avg(li1_0.l_extendedprice),
+        avg(li1_0.l_discount),
+        count(li1_0.l_orderkey) 
+    from
+        lineitem li1_0 
+    where
+        li1_0.l_shipdate<=? 
+    group by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus 
+    order by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus
+2024-11-14 00:10:23 [http-nio-8086-exec-1] INFO  c.r.a.C.RequestLoggingInterceptor - API response sent at: 2024-11-13T22:10:23.746564Z, Duration: 179 ms
+2024-11-14 00:10:24 [http-nio-8086-exec-2] INFO  c.r.a.C.RequestLoggingInterceptor - API call received at: 2024-11-13T22:10:24.103565Z
+2024-11-14 00:10:24 [http-nio-8086-exec-2] DEBUG org.hibernate.SQL - 
+    select
+        li1_0.l_returnflag,
+        li1_0.l_linestatus,
+        sum(li1_0.l_quantity),
+        sum(li1_0.l_extendedprice),
+        sum((li1_0.l_extendedprice*(1-li1_0.l_discount))),
+        sum(((li1_0.l_extendedprice*(1-li1_0.l_discount))*(1+li1_0.l_tax))),
+        avg(li1_0.l_quantity),
+        avg(li1_0.l_extendedprice),
+        avg(li1_0.l_discount),
+        count(li1_0.l_orderkey) 
+    from
+        lineitem li1_0 
+    where
+        li1_0.l_shipdate<=? 
+    group by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus 
+    order by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus
+2024-11-14 00:10:24 [http-nio-8086-exec-2] INFO  c.r.a.C.RequestLoggingInterceptor - API response sent at: 2024-11-13T22:10:24.271290Z, Duration: 168 ms
+2024-11-14 00:10:24 [http-nio-8086-exec-3] INFO  c.r.a.C.RequestLoggingInterceptor - API call received at: 2024-11-13T22:10:24.629743Z
+2024-11-14 00:10:24 [http-nio-8086-exec-3] DEBUG org.hibernate.SQL - 
+    select
+        li1_0.l_returnflag,
+        li1_0.l_linestatus,
+        sum(li1_0.l_quantity),
+        sum(li1_0.l_extendedprice),
+        sum((li1_0.l_extendedprice*(1-li1_0.l_discount))),
+        sum(((li1_0.l_extendedprice*(1-li1_0.l_discount))*(1+li1_0.l_tax))),
+        avg(li1_0.l_quantity),
+        avg(li1_0.l_extendedprice),
+        avg(li1_0.l_discount),
+        count(li1_0.l_orderkey) 
+    from
+        lineitem li1_0 
+    where
+        li1_0.l_shipdate<=? 
+    group by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus 
+    order by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus
+2024-11-14 00:10:24 [http-nio-8086-exec-3] INFO  c.r.a.C.RequestLoggingInterceptor - API response sent at: 2024-11-13T22:10:24.797035Z, Duration: 168 ms
+2024-11-14 00:10:25 [http-nio-8086-exec-4] INFO  c.r.a.C.RequestLoggingInterceptor - API call received at: 2024-11-13T22:10:25.063689Z
+2024-11-14 00:10:25 [http-nio-8086-exec-4] DEBUG org.hibernate.SQL - 
+    select
+        li1_0.l_returnflag,
+        li1_0.l_linestatus,
+        sum(li1_0.l_quantity),
+        sum(li1_0.l_extendedprice),
+        sum((li1_0.l_extendedprice*(1-li1_0.l_discount))),
+        sum(((li1_0.l_extendedprice*(1-li1_0.l_discount))*(1+li1_0.l_tax))),
+        avg(li1_0.l_quantity),
+        avg(li1_0.l_extendedprice),
+        avg(li1_0.l_discount),
+        count(li1_0.l_orderkey) 
+    from
+        lineitem li1_0 
+    where
+        li1_0.l_shipdate<=? 
+    group by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus 
+    order by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus
+2024-11-14 00:10:25 [http-nio-8086-exec-4] INFO  c.r.a.C.RequestLoggingInterceptor - API response sent at: 2024-11-13T22:10:25.236447Z, Duration: 173 ms
+2024-11-14 00:10:25 [http-nio-8086-exec-5] INFO  c.r.a.C.RequestLoggingInterceptor - API call received at: 2024-11-13T22:10:25.402176Z
+2024-11-14 00:10:25 [http-nio-8086-exec-5] DEBUG org.hibernate.SQL - 
+    select
+        li1_0.l_returnflag,
+        li1_0.l_linestatus,
+        sum(li1_0.l_quantity),
+        sum(li1_0.l_extendedprice),
+        sum((li1_0.l_extendedprice*(1-li1_0.l_discount))),
+        sum(((li1_0.l_extendedprice*(1-li1_0.l_discount))*(1+li1_0.l_tax))),
+        avg(li1_0.l_quantity),
+        avg(li1_0.l_extendedprice),
+        avg(li1_0.l_discount),
+        count(li1_0.l_orderkey) 
+    from
+        lineitem li1_0 
+    where
+        li1_0.l_shipdate<=? 
+    group by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus 
+    order by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus
+2024-11-14 00:10:25 [http-nio-8086-exec-5] INFO  c.r.a.C.RequestLoggingInterceptor - API response sent at: 2024-11-13T22:10:25.602435Z, Duration: 200 ms
+2024-11-14 00:10:25 [http-nio-8086-exec-6] INFO  c.r.a.C.RequestLoggingInterceptor - API call received at: 2024-11-13T22:10:25.762900Z
+2024-11-14 00:10:25 [http-nio-8086-exec-6] DEBUG org.hibernate.SQL - 
+    select
+        li1_0.l_returnflag,
+        li1_0.l_linestatus,
+        sum(li1_0.l_quantity),
+        sum(li1_0.l_extendedprice),
+        sum((li1_0.l_extendedprice*(1-li1_0.l_discount))),
+        sum(((li1_0.l_extendedprice*(1-li1_0.l_discount))*(1+li1_0.l_tax))),
+        avg(li1_0.l_quantity),
+        avg(li1_0.l_extendedprice),
+        avg(li1_0.l_discount),
+        count(li1_0.l_orderkey) 
+    from
+        lineitem li1_0 
+    where
+        li1_0.l_shipdate<=? 
+    group by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus 
+    order by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus
+2024-11-14 00:10:25 [http-nio-8086-exec-6] INFO  c.r.a.C.RequestLoggingInterceptor - API response sent at: 2024-11-13T22:10:25.932297Z, Duration: 170 ms
+2024-11-14 00:10:26 [http-nio-8086-exec-7] INFO  c.r.a.C.RequestLoggingInterceptor - API call received at: 2024-11-13T22:10:26.122231Z
+2024-11-14 00:10:26 [http-nio-8086-exec-7] DEBUG org.hibernate.SQL - 
+    select
+        li1_0.l_returnflag,
+        li1_0.l_linestatus,
+        sum(li1_0.l_quantity),
+        sum(li1_0.l_extendedprice),
+        sum((li1_0.l_extendedprice*(1-li1_0.l_discount))),
+        sum(((li1_0.l_extendedprice*(1-li1_0.l_discount))*(1+li1_0.l_tax))),
+        avg(li1_0.l_quantity),
+        avg(li1_0.l_extendedprice),
+        avg(li1_0.l_discount),
+        count(li1_0.l_orderkey) 
+    from
+        lineitem li1_0 
+    where
+        li1_0.l_shipdate<=? 
+    group by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus 
+    order by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus
+2024-11-14 00:10:26 [http-nio-8086-exec-7] INFO  c.r.a.C.RequestLoggingInterceptor - API response sent at: 2024-11-13T22:10:26.314885Z, Duration: 192 ms
+2024-11-14 00:10:26 [http-nio-8086-exec-8] INFO  c.r.a.C.RequestLoggingInterceptor - API call received at: 2024-11-13T22:10:26.450349Z
+2024-11-14 00:10:26 [http-nio-8086-exec-8] DEBUG org.hibernate.SQL - 
+    select
+        li1_0.l_returnflag,
+        li1_0.l_linestatus,
+        sum(li1_0.l_quantity),
+        sum(li1_0.l_extendedprice),
+        sum((li1_0.l_extendedprice*(1-li1_0.l_discount))),
+        sum(((li1_0.l_extendedprice*(1-li1_0.l_discount))*(1+li1_0.l_tax))),
+        avg(li1_0.l_quantity),
+        avg(li1_0.l_extendedprice),
+        avg(li1_0.l_discount),
+        count(li1_0.l_orderkey) 
+    from
+        lineitem li1_0 
+    where
+        li1_0.l_shipdate<=? 
+    group by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus 
+    order by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus
+2024-11-14 00:10:26 [http-nio-8086-exec-8] INFO  c.r.a.C.RequestLoggingInterceptor - API response sent at: 2024-11-13T22:10:26.581766Z, Duration: 131 ms
+2024-11-14 00:10:26 [http-nio-8086-exec-9] INFO  c.r.a.C.RequestLoggingInterceptor - API call received at: 2024-11-13T22:10:26.793540Z
+2024-11-14 00:10:26 [http-nio-8086-exec-9] DEBUG org.hibernate.SQL - 
+    select
+        li1_0.l_returnflag,
+        li1_0.l_linestatus,
+        sum(li1_0.l_quantity),
+        sum(li1_0.l_extendedprice),
+        sum((li1_0.l_extendedprice*(1-li1_0.l_discount))),
+        sum(((li1_0.l_extendedprice*(1-li1_0.l_discount))*(1+li1_0.l_tax))),
+        avg(li1_0.l_quantity),
+        avg(li1_0.l_extendedprice),
+        avg(li1_0.l_discount),
+        count(li1_0.l_orderkey) 
+    from
+        lineitem li1_0 
+    where
+        li1_0.l_shipdate<=? 
+    group by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus 
+    order by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus
+2024-11-14 00:10:26 [http-nio-8086-exec-9] INFO  c.r.a.C.RequestLoggingInterceptor - API response sent at: 2024-11-13T22:10:26.959639Z, Duration: 166 ms
+2024-11-14 00:10:27 [http-nio-8086-exec-1] INFO  c.r.a.C.RequestLoggingInterceptor - API call received at: 2024-11-13T22:10:27.396013Z
+2024-11-14 00:10:27 [http-nio-8086-exec-1] DEBUG org.hibernate.SQL - 
+    select
+        li1_0.l_returnflag,
+        li1_0.l_linestatus,
+        sum(li1_0.l_quantity),
+        sum(li1_0.l_extendedprice),
+        sum((li1_0.l_extendedprice*(1-li1_0.l_discount))),
+        sum(((li1_0.l_extendedprice*(1-li1_0.l_discount))*(1+li1_0.l_tax))),
+        avg(li1_0.l_quantity),
+        avg(li1_0.l_extendedprice),
+        avg(li1_0.l_discount),
+        count(li1_0.l_orderkey) 
+    from
+        lineitem li1_0 
+    where
+        li1_0.l_shipdate<=? 
+    group by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus 
+    order by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus
+2024-11-14 00:10:27 [http-nio-8086-exec-1] INFO  c.r.a.C.RequestLoggingInterceptor - API response sent at: 2024-11-13T22:10:27.563027Z, Duration: 167 ms
+2024-11-14 00:10:27 [http-nio-8086-exec-2] INFO  c.r.a.C.RequestLoggingInterceptor - API call received at: 2024-11-13T22:10:27.993891Z
+2024-11-14 00:10:27 [http-nio-8086-exec-2] DEBUG org.hibernate.SQL - 
+    select
+        li1_0.l_returnflag,
+        li1_0.l_linestatus,
+        sum(li1_0.l_quantity),
+        sum(li1_0.l_extendedprice),
+        sum((li1_0.l_extendedprice*(1-li1_0.l_discount))),
+        sum(((li1_0.l_extendedprice*(1-li1_0.l_discount))*(1+li1_0.l_tax))),
+        avg(li1_0.l_quantity),
+        avg(li1_0.l_extendedprice),
+        avg(li1_0.l_discount),
+        count(li1_0.l_orderkey) 
+    from
+        lineitem li1_0 
+    where
+        li1_0.l_shipdate<=? 
+    group by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus 
+    order by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus
+2024-11-14 00:10:28 [http-nio-8086-exec-2] INFO  c.r.a.C.RequestLoggingInterceptor - API response sent at: 2024-11-13T22:10:28.165556Z, Duration: 172 ms
+2024-11-14 00:10:28 [http-nio-8086-exec-4] INFO  c.r.a.C.RequestLoggingInterceptor - API call received at: 2024-11-13T22:10:28.651726Z
+2024-11-14 00:10:28 [http-nio-8086-exec-4] DEBUG org.hibernate.SQL - 
+    select
+        li1_0.l_returnflag,
+        li1_0.l_linestatus,
+        sum(li1_0.l_quantity),
+        sum(li1_0.l_extendedprice),
+        sum((li1_0.l_extendedprice*(1-li1_0.l_discount))),
+        sum(((li1_0.l_extendedprice*(1-li1_0.l_discount))*(1+li1_0.l_tax))),
+        avg(li1_0.l_quantity),
+        avg(li1_0.l_extendedprice),
+        avg(li1_0.l_discount),
+        count(li1_0.l_orderkey) 
+    from
+        lineitem li1_0 
+    where
+        li1_0.l_shipdate<=? 
+    group by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus 
+    order by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus
+2024-11-14 00:10:28 [http-nio-8086-exec-4] INFO  c.r.a.C.RequestLoggingInterceptor - API response sent at: 2024-11-13T22:10:28.824866Z, Duration: 173 ms
+2024-11-14 00:10:29 [http-nio-8086-exec-6] INFO  c.r.a.C.RequestLoggingInterceptor - API call received at: 2024-11-13T22:10:29.763100Z
+2024-11-14 00:10:29 [http-nio-8086-exec-6] DEBUG org.hibernate.SQL - 
+    select
+        li1_0.l_returnflag,
+        li1_0.l_linestatus,
+        sum(li1_0.l_quantity),
+        sum(li1_0.l_extendedprice),
+        sum((li1_0.l_extendedprice*(1-li1_0.l_discount))),
+        sum(((li1_0.l_extendedprice*(1-li1_0.l_discount))*(1+li1_0.l_tax))),
+        avg(li1_0.l_quantity),
+        avg(li1_0.l_extendedprice),
+        avg(li1_0.l_discount),
+        count(li1_0.l_orderkey) 
+    from
+        lineitem li1_0 
+    where
+        li1_0.l_shipdate<=? 
+    group by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus 
+    order by
+        li1_0.l_returnflag,
+        li1_0.l_linestatus
+2024-11-14 00:10:29 [http-nio-8086-exec-6] INFO  c.r.a.C.RequestLoggingInterceptor - API response sent at: 2024-11-13T22:10:29.934149Z, Duration: 171 ms
+2024-11-14 00:11:05 [File Watcher] INFO  o.s.b.d.a.LocalDevToolsAutoConfiguration$RestartingClassPathChangeChangedEventListener - Restarting due to 1 class path change (0 additions, 1 deletion, 0 modifications)
+2024-11-14 00:11:05 [Thread-6] INFO  o.a.coyote.http11.Http11NioProtocol - Stopping ProtocolHandler ["http-nio-8086"]
+2024-11-14 00:11:05 [Thread-6] INFO  o.s.o.j.LocalContainerEntityManagerFactoryBean - Closing JPA EntityManagerFactory for persistence unit 'default'
+2024-11-14 00:11:05 [Thread-6] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown initiated...
+2024-11-14 00:11:05 [Thread-6] INFO  com.zaxxer.hikari.HikariDataSource - HikariPool-1 - Shutdown completed.
