@@ -15,18 +15,18 @@ import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.NoHttpResponseException;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 
-import org.jfree.chart.ChartFactory;
-import org.jfree.chart.ChartUtils;
-import org.jfree.chart.JFreeChart;
-import org.jfree.chart.plot.PlotOrientation;
-import org.jfree.data.statistics.HistogramDataset;
-import org.jfree.data.xy.XYSeries;
-import org.jfree.data.xy.XYSeriesCollection;
+// import org.jfree.chart.ChartFactory;
+// import org.jfree.chart.ChartUtils;
+// import org.jfree.chart.JFreeChart;
+// import org.jfree.chart.plot.PlotOrientation;
+// import org.jfree.data.statistics.HistogramDataset;
+// import org.jfree.data.xy.XYSeries;
+// import org.jfree.data.xy.XYSeriesCollection;
 
 public class ApiBenchmark {
 
     private static final String CONFIG_FILE = "src/main/resources/config.json";
-    private static final String BASE_URL = "http://localhost:8086/api/reports";
+    private static final String BASE_URL = "http://chiclet-1:8086/api/reports";
     private static Map<String, String> ENDPOINTS;
 
     private static final Random random = new Random();
@@ -227,8 +227,8 @@ public class ApiBenchmark {
         new ObjectMapper().writeValue(new File("benchmark_results.json"), result);
 
         // Create visualizations
-        createLatencyHistogram(latencies);
-        createLatencyCDF(latencies);
+        // createLatencyHistogram(latencies);
+        // createLatencyCDF(latencies);
     }
 
     private static LatencyDistribution createLatencyDistribution(List<Long> latencies) {
@@ -245,77 +245,78 @@ public class ApiBenchmark {
         return latencies.size() % 2 == 0 ?
                 (latencies.get(middle - 1) + latencies.get(middle)) / 2 : latencies.get(middle);
     }
-
-    private static void createLatencyHistogram(List<Long> latencies) {
-        try {
-            // Convert nanoseconds to milliseconds
-            double[] latencyMs = latencies.stream()
-                    .mapToDouble(l -> l / 1_000_000.0)
-                    .toArray();
-
-            HistogramDataset dataset = new HistogramDataset();
-            dataset.addSeries("Latency", latencyMs, 50); // 50 bins
-
-            JFreeChart histogram = ChartFactory.createHistogram(
-                    "Latency Distribution",
-                    "Latency (ms)",
-                    "Frequency",
-                    dataset,
-                    PlotOrientation.VERTICAL,
-                    true,
-                    true,
-                    false
-            );
-
-            // Save the chart as PNG
-            ChartUtils.saveChartAsPNG(
-                    new File("latency_histogram.png"),
-                    histogram,
-                    800,   // width
-                    600    // height
-            );
-        } catch (IOException e) {
-            System.err.println("Error creating latency histogram: " + e.getMessage());
-        }
-    }
-
-    private static void createLatencyCDF(List<Long> latencies) {
-        try {
-            // Sort latencies and calculate CDF
-            List<Long> sortedLatencies = new ArrayList<>(latencies);
-            Collections.sort(sortedLatencies);
-            
-            XYSeries series = new XYSeries("CDF");
-            int totalPoints = sortedLatencies.size();
-            
-            for (int i = 0; i < totalPoints; i++) {
-                double percentile = (i + 1.0) / totalPoints * 100.0;
-                double latencyMs = sortedLatencies.get(i) / 1_000_000.0; // Convert to ms
-                series.add(latencyMs, percentile);
-            }
-
-            XYSeriesCollection dataset = new XYSeriesCollection(series);
-            
-            JFreeChart chart = ChartFactory.createXYLineChart(
-                    "Latency Cumulative Distribution Function",
-                    "Latency (ms)",
-                    "Percentile",
-                    dataset,
-                    PlotOrientation.VERTICAL,
-                    true,
-                    true,
-                    false
-            );
-
-            // Save the chart as PNG
-            ChartUtils.saveChartAsPNG(
-                    new File("latency_cdf.png"),
-                    chart,
-                    800,   // width
-                    600    // height
-            );
-        } catch (IOException e) {
-            System.err.println("Error creating latency CDF: " + e.getMessage());
-        }
-    }
 }
+
+    // private static void createLatencyHistogram(List<Long> latencies) {
+    //     try {
+    //         // Convert nanoseconds to milliseconds
+    //         double[] latencyMs = latencies.stream()
+    //                 .mapToDouble(l -> l / 1_000_000.0)
+    //                 .toArray();
+
+    //         HistogramDataset dataset = new HistogramDataset();
+    //         dataset.addSeries("Latency", latencyMs, 50); // 50 bins
+
+    //         JFreeChart histogram = ChartFactory.createHistogram(
+    //                 "Latency Distribution",
+    //                 "Latency (ms)",
+    //                 "Frequency",
+    //                 dataset,
+    //                 PlotOrientation.VERTICAL,
+    //                 true,
+    //                 true,
+    //                 false
+    //         );
+
+    //         // Save the chart as PNG
+    //         ChartUtils.saveChartAsPNG(
+    //                 new File("latency_histogram.png"),
+    //                 histogram,
+    //                 800,   // width
+    //                 600    // height
+    //         );
+    //     } catch (IOException e) {
+    //         System.err.println("Error creating latency histogram: " + e.getMessage());
+    //     }
+    // }
+
+    // private static void createLatencyCDF(List<Long> latencies) {
+//         try {
+//             // Sort latencies and calculate CDF
+//             List<Long> sortedLatencies = new ArrayList<>(latencies);
+//             Collections.sort(sortedLatencies);
+            
+//             XYSeries series = new XYSeries("CDF");
+//             int totalPoints = sortedLatencies.size();
+            
+//             for (int i = 0; i < totalPoints; i++) {
+//                 double percentile = (i + 1.0) / totalPoints * 100.0;
+//                 double latencyMs = sortedLatencies.get(i) / 1_000_000.0; // Convert to ms
+//                 series.add(latencyMs, percentile);
+//             }
+
+//             XYSeriesCollection dataset = new XYSeriesCollection(series);
+            
+//             JFreeChart chart = ChartFactory.createXYLineChart(
+//                     "Latency Cumulative Distribution Function",
+//                     "Latency (ms)",
+//                     "Percentile",
+//                     dataset,
+//                     PlotOrientation.VERTICAL,
+//                     true,
+//                     true,
+//                     false
+//             );
+
+//             // Save the chart as PNG
+//             ChartUtils.saveChartAsPNG(
+//                     new File("latency_cdf.png"),
+//                     chart,
+//                     800,   // width
+//                     600    // height
+//             );
+//         } catch (IOException e) {
+//             System.err.println("Error creating latency CDF: " + e.getMessage());
+//         }
+//     }
+// }
