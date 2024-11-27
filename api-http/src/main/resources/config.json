@@ -1,12 +1,12 @@
 {
   "connections": 8,
-  "requestsPerSecond": 500,
-  "duration": 60,
+  "requestsPerSecond": 20,
+  "duration": 20,
   "probabilities": {
     "pricing-summary": 0.0,
-    "supplier-part-info": 0.5,
+    "supplier-part-info": 1,
     "order-revenue-info": 0.0,
-    "order-priority-count": 0.5,
+    "order-priority-count": 0.0,
     "local-supplier-volume": 0.0,
     "revenue-increase": 0.0
   },

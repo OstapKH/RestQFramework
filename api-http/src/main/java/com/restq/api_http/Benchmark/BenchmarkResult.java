@@ -1,5 +1,7 @@
 package com.restq.api_http.Benchmark;
 
+import java.util.Map;
+
 public class BenchmarkResult {
     private long startTimestamp;
     private long currentTimestamp;
@@ -9,6 +11,11 @@ public class BenchmarkResult {
     private double throughput;
     private double goodput;
     private long expectedDuration;
+    private int connections;
+    private int requestsPerSecond;
+    private Map<String, Double> probabilities;
+    private Map<String, String> endpoints;
+    private long timestamp;
 
     public long getStartTimestamp() {
         return startTimestamp;
@@ -73,6 +80,44 @@ public class BenchmarkResult {
     public void setExpectedDuration(long expectedDuration) {
         this.expectedDuration = expectedDuration;
     }
+
+    public int getConnections() {
+        return connections;
+    }
+
+    public void setConnections(int connections) {
+        this.connections = connections;
+    }
+
+    public int getRequestsPerSecond() {
+        return requestsPerSecond;
+    }
+
+    public void setRequestsPerSecond(int requestsPerSecond) {
+        this.requestsPerSecond = requestsPerSecond;
+    }
+
+    public Map<String, Double> getProbabilities() {
+        return probabilities;
+    }
+
+    public void setProbabilities(Map<String, Double> probabilities) {
+        this.probabilities = probabilities;
+    }
+
+    public Map<String, String> getEndpoints() {
+        return endpoints;
+    }
+
+    public void setEndpoints(Map<String, String> endpoints) {
+        this.endpoints = endpoints;
+    }
+
+    public long getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(long timestamp) {
+        this.timestamp = timestamp;
+    }
 }
-
-
