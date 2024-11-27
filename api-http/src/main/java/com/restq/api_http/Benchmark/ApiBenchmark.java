@@ -36,7 +36,7 @@ public class ApiBenchmark {
         Config config = new ObjectMapper().readValue(new File(CONFIG_FILE), Config.class);
         ENDPOINTS = config.getEndpoints();
 
-        for (int run = 0; run < 1; run++) {
+        for (int run = 0; run < 10; run++) {
             ExecutorService executor = Executors.newFixedThreadPool(config.getConnections());
             List<Future<ClientTaskResult>> futures = new ArrayList<>();
             List<Long> allLatencies = new ArrayList<>();
