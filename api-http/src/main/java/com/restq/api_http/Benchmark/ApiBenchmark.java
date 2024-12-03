@@ -46,7 +46,7 @@ public class ApiBenchmark {
         Config config = new ObjectMapper().readValue(new File(CONFIG_FILE), Config.class);
         ENDPOINTS = config.getEndpoints();
 
-        for (int run = 0; run < 3; run++) {
+        for (int run = 0; run < 7; run++) {
             // Clear initial port map for each run
             initialPortMap.clear();
 
