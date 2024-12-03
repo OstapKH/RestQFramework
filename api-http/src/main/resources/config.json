@@ -1,7 +1,7 @@
 {
-  "connections": 8,
-  "requestsPerSecond": 20,
-  "duration": 20,
+  "connections": 1,
+  "requestsPerSecond": 1,
+  "duration": 10,
   "probabilities": {
     "pricing-summary": 0.0,
     "supplier-part-info": 1,

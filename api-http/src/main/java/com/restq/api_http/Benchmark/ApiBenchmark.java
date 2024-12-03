@@ -1,6 +1,8 @@
 package com.restq.api_http.Benchmark;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,6 +17,9 @@ import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
 import org.apache.hc.core5.http.NoHttpResponseException;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
+import org.apache.hc.core5.http.EntityDetails;
+import org.apache.hc.core5.http.HttpRequest;
+import org.apache.hc.core5.http.protocol.HttpContext;
 
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartUtils;
@@ -26,17 +31,25 @@ import org.jfree.data.xy.XYSeriesCollection;
 
 public class ApiBenchmark {
 
+    private static final Logger logger = LoggerFactory.getLogger(ApiBenchmark.class);
+
     private static final String CONFIG_FILE = "src/main/resources/config.json";
     private static final String BASE_URL = "http://localhost:8086/api/reports";
     private static Map<String, String> ENDPOINTS;
 
     private static final Random random = new Random();
 
+    // Map to track the initial port used by each thread
+    private static final ConcurrentMap<String, Integer> initialPortMap = new ConcurrentHashMap<>();
+
     public static void main(String[] args) throws IOException, InterruptedException {
         Config config = new ObjectMapper().readValue(new File(CONFIG_FILE), Config.class);
         ENDPOINTS = config.getEndpoints();
 
-        for (int run = 0; run < 10; run++) {
+        for (int run = 0; run < 3; run++) {
+            // Clear initial port map for each run
+            initialPortMap.clear();
+
             ExecutorService executor = Executors.newFixedThreadPool(config.getConnections());
             List<Future<ClientTaskResult>> futures = new ArrayList<>();
             List<Long> allLatencies = new ArrayList<>();
@@ -67,7 +80,7 @@ public class ApiBenchmark {
                         if (elapsedTime < 1000) {
                             Thread.sleep(1000 - elapsedTime);
                         } else {
-                            System.out.println("Warning: Adding requests took longer than 1 second.");
+                            logger.warn("Warning: Adding requests took longer than 1 second.");
                         }
                     }
                 } catch (InterruptedException e) {
@@ -90,7 +103,7 @@ public class ApiBenchmark {
                     allLatencies.addAll(result.getLatencies());
                     totalSuccessfulRequests += result.getSuccessfulRequests();
                 } catch (ExecutionException | InterruptedException e) {
-                    System.err.println("Error in executing client task: " + e.getMessage());
+                    logger.error("Error in executing client task: {}", e.getMessage(), e);
                 }
             }
 
@@ -98,7 +111,11 @@ public class ApiBenchmark {
             executor.awaitTermination(2, TimeUnit.SECONDS);
 
             long actualEndTimestamp = System.currentTimeMillis();
-            writeBenchmarkResults(startTimestamp, actualEndTimestamp, allLatencies, totalSuccessfulRequests, config.getConnections(), run);
+
+            writeBenchmarkResults(startTimestamp, actualEndTimestamp, allLatencies, totalSuccessfulRequests,
+                    config.getConnections(), run);
+
+            Thread.sleep(10000);
         }
     }
 
@@ -108,12 +125,20 @@ public class ApiBenchmark {
         private final BlockingQueue<String> queue;
         private final long endTimestamp;
         private int successfulRequests = 0; // Track successful requests
+        private final String threadName;
 
         public ClientTask(Config config, BlockingQueue<String> queue, long endTimestamp) {
             this.config = config;
             this.queue = queue;
             this.endTimestamp = endTimestamp;
-            this.httpClient = HttpClients.custom().setConnectionReuseStrategy((request, response, context) -> true).build();
+            this.threadName = Thread.currentThread().getName();
+
+            this.httpClient = HttpClients.custom()
+                    .addRequestInterceptorFirst((HttpRequest request, EntityDetails entity, HttpContext context) -> {
+                        initialPortMap.computeIfAbsent(threadName, k -> 0);
+                    })
+                    .setConnectionReuseStrategy((request, response, context) -> true)
+                    .build();
         }
 
         @Override
@@ -121,10 +146,10 @@ public class ApiBenchmark {
             List<Long> latencies = new ArrayList<>();
             try {
                 while (!queue.isEmpty() || System.currentTimeMillis() < endTimestamp) {
-                    String endpoint = queue.poll(1, TimeUnit.SECONDS); // Poll with timeout
+                    String endpoint = queue.poll(1, TimeUnit.SECONDS);
                     if (endpoint != null) {
                         long latency = sendRequest(endpoint);
-                        if (latency >= 0) { // Check if request was successful
+                        if (latency >= 0) {
                             latencies.add(latency);
                             successfulRequests++;
                         }
@@ -132,11 +157,12 @@ public class ApiBenchmark {
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
+                logger.error("Client task interrupted", e);
             } finally {
                 try {
                     httpClient.close();
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    logger.error("Error closing HttpClient", e);
                 }
             }
             return new ClientTaskResult(latencies, successfulRequests);
@@ -152,12 +178,12 @@ public class ApiBenchmark {
                 // Return latency if successful
                 return System.nanoTime() - start;
             } catch (NoHttpResponseException e) {
-                System.out.println("NoHttpResponseException: The server did not respond. Details:");
-                System.out.println("Endpoint: " + endpoint);
+                logger.error("NoHttpResponseException: The server did not respond. Details:");
+                logger.error("Endpoint: {}", endpoint);
                 e.printStackTrace();
             } catch (IOException e) {
-                System.out.println("IOException occurred while sending request to: " + endpoint);
-                System.out.println("Message: " + e.getMessage());
+                logger.error("IOException occurred while sending request to: {}", endpoint);
+                logger.error("Message: {}", e.getMessage());
                 e.printStackTrace();
             }
 
@@ -196,7 +222,8 @@ public class ApiBenchmark {
         return ENDPOINTS.values().iterator().next();
     }
 
-    private static void writeBenchmarkResults(long startTimestamp, long endTimestamp, List<Long> latencies, int totalSuccessfulRequests, int connections, int run) throws IOException {
+    private static void writeBenchmarkResults(long startTimestamp, long endTimestamp, List<Long> latencies,
+            int totalSuccessfulRequests, int connections, int run) throws IOException {
         Config config = new ObjectMapper().readValue(new File(CONFIG_FILE), Config.class);
 
         BenchmarkResult result = new BenchmarkResult();
@@ -246,8 +273,8 @@ public class ApiBenchmark {
 
     private static long median(List<Long> latencies) {
         int middle = latencies.size() / 2;
-        return latencies.size() % 2 == 0 ?
-                (latencies.get(middle - 1) + latencies.get(middle)) / 2 : latencies.get(middle);
+        return latencies.size() % 2 == 0 ? (latencies.get(middle - 1) + latencies.get(middle)) / 2
+                : latencies.get(middle);
     }
 
     private static void createLatencyHistogram(List<Long> latencies, String timestamp) {
@@ -268,8 +295,7 @@ public class ApiBenchmark {
                     PlotOrientation.VERTICAL,
                     true,
                     true,
-                    false
-            );
+                    false);
 
             // Generate a timestamped file name
             String fileName = "latency_histogram_" + timestamp + ".png";
@@ -279,10 +305,9 @@ public class ApiBenchmark {
                     new File(fileName),
                     histogram,
                     800,
-                    600
-            );
+                    600);
         } catch (IOException e) {
-            System.err.println("Error creating latency histogram: " + e.getMessage());
+            logger.error("Error creating latency histogram: {}", e.getMessage());
         }
     }
 
@@ -291,10 +316,10 @@ public class ApiBenchmark {
             // Sort latencies and calculate CDF
             List<Long> sortedLatencies = new ArrayList<>(latencies);
             Collections.sort(sortedLatencies);
-            
+
             XYSeries series = new XYSeries("CDF");
             int totalPoints = sortedLatencies.size();
-            
+
             for (int i = 0; i < totalPoints; i++) {
                 double percentile = (i + 1.0) / totalPoints * 100.0;
                 double latencyMs = sortedLatencies.get(i) / 1_000_000.0; // Convert to ms
@@ -302,7 +327,7 @@ public class ApiBenchmark {
             }
 
             XYSeriesCollection dataset = new XYSeriesCollection(series);
-            
+
             JFreeChart chart = ChartFactory.createXYLineChart(
                     "Latency Cumulative Distribution Function",
                     "Latency (ms)",
@@ -311,8 +336,7 @@ public class ApiBenchmark {
                     PlotOrientation.VERTICAL,
                     true,
                     true,
-                    false
-            );
+                    false);
 
             // Generate a timestamped file name
             String fileName = "latency_cdf_" + timestamp + ".png";
@@ -321,11 +345,11 @@ public class ApiBenchmark {
             ChartUtils.saveChartAsPNG(
                     new File(fileName),
                     chart,
-                    800,   // width
-                    600    // height
+                    800, // width
+                    600 // height
             );
         } catch (IOException e) {
-            System.err.println("Error creating latency CDF: " + e.getMessage());
+            logger.error("Error creating latency CDF: {}", e.getMessage());
         }
     }
 }
