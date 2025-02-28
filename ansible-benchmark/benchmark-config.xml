@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<benchmark-config>
+<pauseBetweenExperiments-ms>5000</pauseBetweenExperiments-ms>
+
+    <endpoints>
+        <endpoint name="pricing-summary">/pricing-summary?delta=3&amp;shipDate=1998-12-01</endpoint>
+        <endpoint name="supplier-part-info">/supplier-part-info?size=10&amp;type=A&amp;region=America</endpoint>
+        <endpoint name="order-revenue-info">/order-revenue-info?segment=Automobile&amp;date=2023-01-01</endpoint>
+        <endpoint name="order-priority-count">/order-priority-count?date=2023-01-01</endpoint>
+        <endpoint name="local-supplier-volume">/local-supplier-volume?region=Asia&amp;startDate=2023-01-01</endpoint>
+        <endpoint name="revenue-increase">/revenue-increase?discount=0.2&amp;quantity=10&amp;startDate=2023-01-01</endpoint>
+    </endpoints>
+
+<experiment>
+    <experiment_name>Experiment_1</experiment_name>
+    <runs>3</runs>
+    <pause-between-runs-ms>10000</pause-between-runs-ms>
+    <connections>4</connections>
+    <requests-per-second>30</requests-per-second>
+    <duration-seconds>30</duration-seconds>
+    
+    <probabilities>
+        <probability endpoint="pricing-summary">0.2</probability>
+        <probability endpoint="supplier-part-info">0.4</probability>
+        <probability endpoint="order-revenue-info">0.1</probability>
+        <probability endpoint="order-priority-count">0.1</probability>
+        <probability endpoint="local-supplier-volume">0.1</probability>
+        <probability endpoint="revenue-increase">0.1</probability>
+    </probabilities>
+</experiment>
+
+<experiment>
+    <experiment_name>Experiment_2</experiment_name>
+    <runs>2</runs>
+    <pause-between-runs-ms>5000</pause-between-runs-ms>
+    <connections>4</connections>
+    <requests-per-second>30</requests-per-second>
+    <duration-seconds>30</duration-seconds>
+    
+    <probabilities>
+        <probability endpoint="pricing-summary">0.2</probability>
+        <probability endpoint="supplier-part-info">0.4</probability>
+        <probability endpoint="order-revenue-info">0.1</probability>
+        <probability endpoint="order-priority-count">0.1</probability>
+        <probability endpoint="local-supplier-volume">0.1</probability>
+        <probability endpoint="revenue-increase">0.1</probability>
+    </probabilities>
+</experiment>
+</benchmark-config> 

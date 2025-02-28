@@ -1,6 +1,5 @@
 package com.restq.api_http.Benchmark;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,6 +9,11 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
+
+import jakarta.xml.bind.JAXBContext;
+import jakarta.xml.bind.JAXBException;
+import jakarta.xml.bind.Unmarshaller;
+import jakarta.xml.bind.annotation.*;
 
 import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
@@ -29,11 +33,17 @@ import org.jfree.data.statistics.HistogramDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 public class ApiBenchmark {
 
     private static final Logger logger = LoggerFactory.getLogger(ApiBenchmark.class);
 
-    private static final String CONFIG_FILE = "src/main/resources/config.json";
+    // Update to use XML config file
+    private static final String CONFIG_FILE = "src/main/resources/benchmark-config.xml";
     private static final String BASE_URL = "http://localhost:8086/api/reports";
     private static Map<String, String> ENDPOINTS;
 
@@ -42,36 +52,118 @@ public class ApiBenchmark {
     // Map to track the initial port used by each thread
     private static final ConcurrentMap<String, Integer> initialPortMap = new ConcurrentHashMap<>();
 
-    public static void main(String[] args) throws IOException, InterruptedException {
-        Config config = new ObjectMapper().readValue(new File(CONFIG_FILE), Config.class);
-        ENDPOINTS = config.getEndpoints();
+    // Global JSON result object to store all experiment results
+    private static ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
+    private static ObjectNode allResults;
+    private static String resultFileName;
 
-        for (int run = 0; run < 7; run++) {
+    public static void main(String[] args) throws IOException, InterruptedException {
+        try {
+            // Initialize global result variables
+            allResults = mapper.createObjectNode();
+            // Generate a timestamped file name for all results
+            String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+            resultFileName = "benchmark_results_" + timestamp + ".json";
+            
+            // Load XML configuration
+            File configFile = new File(CONFIG_FILE);
+            JAXBContext context = JAXBContext.newInstance(BenchmarkConfig.class);
+            Unmarshaller unmarshaller = context.createUnmarshaller();
+            BenchmarkConfig benchmarkConfig = (BenchmarkConfig) unmarshaller.unmarshal(configFile);
+            
+            // Add metadata to results
+            allResults.put("timestamp", timestamp);
+            allResults.put("config_file", CONFIG_FILE);
+            allResults.put("base_url", BASE_URL);
+            allResults.put("pauseBetweenExperiments_ms", benchmarkConfig.getPauseBetweenExperiments());
+            
+            // Add endpoints configuration
+            ObjectNode endpointsNode = allResults.putObject("endpoints");
+            for (EndpointConfig endpoint : benchmarkConfig.getEndpoints()) {
+                endpointsNode.put(endpoint.getName(), endpoint.getUrl());
+            }
+            
+            // Set up endpoint mappings
+            ENDPOINTS = new HashMap<>();
+            for (EndpointConfig endpoint : benchmarkConfig.getEndpoints()) {
+                ENDPOINTS.put(endpoint.getName(), endpoint.getUrl());
+            }
+            
+            // Add global configuration section
+            ObjectNode globalConfigNode = allResults.putObject("global_config");
+            globalConfigNode.put("pauseBetweenExperiments_ms", benchmarkConfig.getPauseBetweenExperiments());
+            
+            // Add experiments container
+            ObjectNode experimentsNode = allResults.putObject("experiments");
+            
+            // Run each experiment
+            for (ExperimentConfig experiment : benchmarkConfig.getExperiments()) {
+                logger.info("Starting experiment: {}", experiment.getExperimentName());
+                
+                // Create a node for this experiment
+                ObjectNode experimentNode = experimentsNode.putObject(experiment.getExperimentName());
+                experimentNode.put("runs_configured", experiment.getRuns());
+                experimentNode.put("connections", experiment.getConnections());
+                experimentNode.put("requests_per_second", experiment.getRequestsPerSecond());
+                experimentNode.put("duration_seconds", experiment.getDuration());
+                experimentNode.put("pause_between_runs_ms", experiment.getPauseBetweenRuns());
+                
+                // Add probabilities to experiment config
+                ObjectNode expProbNode = experimentNode.putObject("probabilities");
+                for (Map.Entry<String, Double> entry : experiment.getProbabilitiesMap().entrySet()) {
+                    expProbNode.put(entry.getKey(), entry.getValue());
+                }
+                
+                // Add runs array to this experiment
+                ArrayNode runsArray = experimentNode.putArray("runs");
+                
+                runExperiment(experiment, benchmarkConfig, runsArray);
+                
+                // Pause between experiments if there are more to run
+                if (benchmarkConfig.getExperiments().indexOf(experiment) < benchmarkConfig.getExperiments().size() - 1) {
+                    logger.info("Pausing for {} ms before next experiment", benchmarkConfig.getPauseBetweenExperiments());
+                    Thread.sleep(benchmarkConfig.getPauseBetweenExperiments());
+                }
+            }
+            
+            // Write all results to a single file
+            mapper.writeValue(new File(resultFileName), allResults);
+            logger.info("All experiments completed. Results saved to {}", resultFileName);
+            
+        } catch (JAXBException e) {
+            logger.error("Error parsing XML configuration: {}", e.getMessage(), e);
+        }
+    }
+    
+    private static void runExperiment(ExperimentConfig experiment, BenchmarkConfig benchmarkConfig, ArrayNode runsArray) throws InterruptedException, IOException {
+        for (int run = 0; run < experiment.getRuns(); run++) {
+            logger.info("Starting run {} of {} for experiment {}", run + 1, experiment.getRuns(), experiment.getExperimentName());
+            
             // Clear initial port map for each run
             initialPortMap.clear();
 
-            ExecutorService executor = Executors.newFixedThreadPool(config.getConnections());
+            ExecutorService executor = Executors.newFixedThreadPool(experiment.getConnections());
             List<Future<ClientTaskResult>> futures = new ArrayList<>();
-            List<Long> allLatencies = new ArrayList<>();
+            List<TimestampedLatency> allLatencies = new ArrayList<>();
 
             // Create a queue for each thread
             List<BlockingQueue<String>> queues = new ArrayList<>();
-            for (int i = 0; i < config.getConnections(); i++) {
+            for (int i = 0; i < experiment.getConnections(); i++) {
                 queues.add(new LinkedBlockingQueue<>());
             }
 
             long startTimestamp = System.currentTimeMillis();
-            long endTimestamp = startTimestamp + config.getDuration() * 1000;
+            long endTimestamp = startTimestamp + experiment.getDuration() * 1000;
 
             // Start producer thread to add requests to queues
             Thread producerThread = new Thread(() -> {
                 try {
                     while (System.currentTimeMillis() < endTimestamp) {
                         long startTime = System.currentTimeMillis();
-                        String endpoint = chooseEndpoint(config.getProbabilities());
+                        String endpoint = chooseEndpoint(experiment.getProbabilitiesMap());
 
                         for (BlockingQueue<String> queue : queues) {
-                            for (int j = 0; j < config.getRequestsPerSecond(); j++) {
+                            for (int j = 0; j < experiment.getRequestsPerSecond(); j++) {
                                 queue.put(endpoint);
                             }
                         }
@@ -90,8 +182,8 @@ public class ApiBenchmark {
             producerThread.start();
 
             // Start client tasks
-            for (int i = 0; i < config.getConnections(); i++) {
-                futures.add(executor.submit(new ClientTask(config, queues.get(i), endTimestamp)));
+            for (int i = 0; i < experiment.getConnections(); i++) {
+                futures.add(executor.submit(new ClientTask(experiment, queues.get(i), endTimestamp)));
             }
 
             producerThread.join();
@@ -107,28 +199,45 @@ public class ApiBenchmark {
                 }
             }
 
+            // Sort all latencies by timestamp to maintain chronological order
+            allLatencies.sort(Comparator.comparing(TimestampedLatency::getTimestamp));
+
+            // Extract just the latency values for calculations (in chronological order)
+            List<Long> orderedLatencyValues = allLatencies.stream()
+                .map(TimestampedLatency::getLatency)
+                .collect(Collectors.toList());
+
             executor.shutdown();
             executor.awaitTermination(2, TimeUnit.SECONDS);
 
             long actualEndTimestamp = System.currentTimeMillis();
 
-            writeBenchmarkResults(startTimestamp, actualEndTimestamp, allLatencies, totalSuccessfulRequests,
-                    config.getConnections(), run);
+            // Pass the ordered latencies to the results
+            addRunResults(startTimestamp, actualEndTimestamp, orderedLatencyValues, allLatencies,
+                    totalSuccessfulRequests, experiment.getConnections(), run, experiment, runsArray);
 
-            Thread.sleep(10000);
+            // Create latency distributions but don't save images
+            createLatencyHistogram(orderedLatencyValues, experiment.getExperimentName() + "_run" + run);
+            createLatencyCDF(orderedLatencyValues, experiment.getExperimentName() + "_run" + run);
+
+            // Pause between runs if there are more to run
+            if (run < experiment.getRuns() - 1) {
+                logger.info("Pausing for {} ms before next run", experiment.getPauseBetweenRuns());
+                Thread.sleep(experiment.getPauseBetweenRuns());
+            }
         }
     }
 
     private static class ClientTask implements Callable<ClientTaskResult> {
-        private final Config config;
+        private final ExperimentConfig experiment;
         private final CloseableHttpClient httpClient;
         private final BlockingQueue<String> queue;
         private final long endTimestamp;
         private int successfulRequests = 0; // Track successful requests
         private final String threadName;
 
-        public ClientTask(Config config, BlockingQueue<String> queue, long endTimestamp) {
-            this.config = config;
+        public ClientTask(ExperimentConfig experiment, BlockingQueue<String> queue, long endTimestamp) {
+            this.experiment = experiment;
             this.queue = queue;
             this.endTimestamp = endTimestamp;
             this.threadName = Thread.currentThread().getName();
@@ -143,14 +252,16 @@ public class ApiBenchmark {
 
         @Override
         public ClientTaskResult call() {
-            List<Long> latencies = new ArrayList<>();
+            // Change from List<Long> to List<TimestampedLatency>
+            List<TimestampedLatency> latencies = new ArrayList<>();
             try {
                 while (!queue.isEmpty() || System.currentTimeMillis() < endTimestamp) {
                     String endpoint = queue.poll(1, TimeUnit.SECONDS);
                     if (endpoint != null) {
-                        long latency = sendRequest(endpoint);
-                        if (latency >= 0) {
-                            latencies.add(latency);
+                        // Capture request timestamp and latency
+                        TimestampedLatency result = sendRequest(endpoint);
+                        if (result.getLatency() >= 0) {
+                            latencies.add(result);
                             successfulRequests++;
                         }
                     }
@@ -168,7 +279,8 @@ public class ApiBenchmark {
             return new ClientTaskResult(latencies, successfulRequests);
         }
 
-        private long sendRequest(String endpoint) {
+        private TimestampedLatency sendRequest(String endpoint) {
+            long requestTimestamp = System.currentTimeMillis(); // Record when request was sent
             long start = System.nanoTime();
             HttpGet request = new HttpGet(BASE_URL + endpoint);
 
@@ -176,7 +288,7 @@ public class ApiBenchmark {
                 // Consume the response to free resources
                 EntityUtils.consume(response.getEntity());
                 // Return latency if successful
-                return System.nanoTime() - start;
+                return new TimestampedLatency(requestTimestamp, System.nanoTime() - start);
             } catch (NoHttpResponseException e) {
                 logger.error("NoHttpResponseException: The server did not respond. Details:");
                 logger.error("Endpoint: {}", endpoint);
@@ -188,20 +300,40 @@ public class ApiBenchmark {
             }
 
             // Indicate failure
-            return -1;
+            return new TimestampedLatency(requestTimestamp, -1);
+        }
+    }
+
+    // New class to store a latency with its timestamp
+    private static class TimestampedLatency {
+        private final long timestamp; // When the request was made
+        private final long latency;   // Latency in nanoseconds
+
+        public TimestampedLatency(long timestamp, long latency) {
+            this.timestamp = timestamp;
+            this.latency = latency;
+        }
+
+        public long getTimestamp() {
+            return timestamp;
+        }
+
+        public long getLatency() {
+            return latency;
         }
     }
 
     private static class ClientTaskResult {
-        private final List<Long> latencies;
+        // Change from List<Long> to List<TimestampedLatency>
+        private final List<TimestampedLatency> latencies;
         private final int successfulRequests;
 
-        public ClientTaskResult(List<Long> latencies, int successfulRequests) {
+        public ClientTaskResult(List<TimestampedLatency> latencies, int successfulRequests) {
             this.latencies = latencies;
             this.successfulRequests = successfulRequests;
         }
 
-        public List<Long> getLatencies() {
+        public List<TimestampedLatency> getLatencies() {
             return latencies;
         }
 
@@ -222,53 +354,75 @@ public class ApiBenchmark {
         return ENDPOINTS.values().iterator().next();
     }
 
-    private static void writeBenchmarkResults(long startTimestamp, long endTimestamp, List<Long> latencies,
-            int totalSuccessfulRequests, int connections, int run) throws IOException {
-        Config config = new ObjectMapper().readValue(new File(CONFIG_FILE), Config.class);
-
-        BenchmarkResult result = new BenchmarkResult();
-        result.setTimestamp(System.currentTimeMillis());
-        result.setStartTimestamp(startTimestamp);
-        result.setCurrentTimestamp(endTimestamp);
-        result.setElapsedTime(endTimestamp - startTimestamp);
-        result.setExpectedDuration(config.getDuration() * 1000);
-        result.setTerminals(connections);
-        result.setConnections(config.getConnections());
-        result.setRequestsPerSecond(config.getRequestsPerSecond());
-        result.setProbabilities(config.getProbabilities());
-        result.setEndpoints(config.getEndpoints());
-
-        List<Long> sortedLatencies = latencies.stream().sorted().collect(Collectors.toList());
-        result.setLatencyDistribution(createLatencyDistribution(sortedLatencies));
-
-        long totalRequests = latencies.size();
+    // Replaces writeBenchmarkResults with a method that adds to our global results
+    private static void addRunResults(long startTimestamp, long endTimestamp, List<Long> latencyValues,
+            List<TimestampedLatency> allLatencies, int totalSuccessfulRequests, int connections, 
+            int run, ExperimentConfig experiment, ArrayNode runsArray) throws IOException {
+        
+        // Create a result node for this run
+        ObjectNode runNode = mapper.createObjectNode();
+        runNode.put("run_number", run);
+        runNode.put("timestamp", System.currentTimeMillis());
+        runNode.put("start_timestamp", startTimestamp);
+        runNode.put("end_timestamp", endTimestamp);
+        runNode.put("elapsed_time_ms", endTimestamp - startTimestamp);
+        runNode.put("expected_duration_ms", experiment.getDuration() * 1000);
+        runNode.put("terminals", connections);
+        runNode.put("connections", experiment.getConnections());
+        runNode.put("requests_per_second", experiment.getRequestsPerSecond());
+        
+        // We don't need to add probabilities to each run since they're now in the experiment config
+        // but we'll still track endpoints used
+        runNode.put("experiment_name", experiment.getExperimentName());
+        
+        // Add chronologically ordered latencies with timestamps
+        ArrayNode latenciesArray = runNode.putArray("latencies");
+        for (TimestampedLatency latency : allLatencies) {
+            ObjectNode latencyNode = latenciesArray.addObject();
+            latencyNode.put("timestamp", latency.getTimestamp());
+            latencyNode.put("latency_ns", latency.getLatency());
+        }
+        
+        // Add latency distribution
+        List<Long> sortedLatencies = latencyValues.stream().sorted().collect(Collectors.toList());
+        ObjectNode latencyNode = runNode.putObject("latency_distribution");
+        if (!sortedLatencies.isEmpty()) {
+            latencyNode.put("median_latency_ns", median(sortedLatencies));
+            latencyNode.put("min_latency_ns", sortedLatencies.get(0));
+            latencyNode.put("max_latency_ns", sortedLatencies.get(sortedLatencies.size() - 1));
+            
+            // Add percentiles
+            ObjectNode percentileNode = latencyNode.putObject("percentiles");
+            addPercentile(sortedLatencies, 25, percentileNode);
+            addPercentile(sortedLatencies, 75, percentileNode);
+            addPercentile(sortedLatencies, 90, percentileNode);
+            addPercentile(sortedLatencies, 95, percentileNode);
+            addPercentile(sortedLatencies, 99, percentileNode);
+        }
+        
+        // Add performance metrics
+        long totalRequests = latencyValues.size();
         double elapsedTimeInSeconds = (endTimestamp - startTimestamp) / 1000.0;
         double throughput = totalRequests / elapsedTimeInSeconds;
-        result.setThroughput(throughput);
-
+        runNode.put("throughput", throughput);
+        
         double goodput = totalSuccessfulRequests / elapsedTimeInSeconds;
-        result.setGoodput(goodput);
-
-        // Generate a timestamped file name
-        String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-        String fileName = "benchmark_results_" + timestamp + ".json";
-
-        // Write the result to a new file
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.writeValue(new File(fileName), result);
-
-        // Create visualizations
-        createLatencyHistogram(latencies, timestamp);
-        createLatencyCDF(latencies, timestamp);
+        runNode.put("goodput", goodput);
+        runNode.put("total_requests", totalRequests);
+        runNode.put("successful_requests", totalSuccessfulRequests);
+        
+        // Add this run to the runs array
+        runsArray.add(runNode);
+        
+        // Save intermediate results after each run
+        mapper.writeValue(new File(resultFileName), allResults);
+        logger.info("Updated results for experiment: {}, run: {}", experiment.getExperimentName(), run);
     }
 
-    private static LatencyDistribution createLatencyDistribution(List<Long> latencies) {
-        LatencyDistribution distribution = new LatencyDistribution();
-        distribution.setMedianLatency(median(latencies));
-        distribution.setMinimumLatency(latencies.get(0));
-        distribution.setMaximumLatency(latencies.get(latencies.size() - 1));
-        distribution.setPercentile(latencies, 25, 75, 90, 95, 99);
-        return distribution;
+    private static void addPercentile(List<Long> latencies, int percentile, ObjectNode node) {
+        int index = (int) Math.ceil(percentile / 100.0 * latencies.size()) - 1;
+        index = Math.max(0, Math.min(index, latencies.size() - 1));
+        node.put("p" + percentile, latencies.get(index));
     }
 
     private static long median(List<Long> latencies) {
@@ -277,7 +431,8 @@ public class ApiBenchmark {
                 : latencies.get(middle);
     }
 
-    private static void createLatencyHistogram(List<Long> latencies, String timestamp) {
+    private static void createLatencyHistogram(List<Long> latencies, String filePrefix) {
+        // Keep the calculation code but comment out the file saving
         try {
             // Convert nanoseconds to milliseconds
             double[] latencyMs = latencies.stream()
@@ -297,21 +452,26 @@ public class ApiBenchmark {
                     true,
                     false);
 
-            // Generate a timestamped file name
-            String fileName = "latency_histogram_" + timestamp + ".png";
+            // Generate a file name with experiment info
+            String fileName = "latency_histogram_" + filePrefix + ".png";
 
-            // Save the chart as PNG
+            // Comment out the image saving code
+            /*
             ChartUtils.saveChartAsPNG(
                     new File(fileName),
                     histogram,
                     800,
                     600);
-        } catch (IOException e) {
+            */
+            
+            logger.debug("Histogram calculated for {}", filePrefix);
+        } catch (Exception e) {
             logger.error("Error creating latency histogram: {}", e.getMessage());
         }
     }
 
-    private static void createLatencyCDF(List<Long> latencies, String timestamp) {
+    private static void createLatencyCDF(List<Long> latencies, String filePrefix) {
+        // Keep the calculation code but comment out the file saving
         try {
             // Sort latencies and calculate CDF
             List<Long> sortedLatencies = new ArrayList<>(latencies);
@@ -338,18 +498,146 @@ public class ApiBenchmark {
                     true,
                     false);
 
-            // Generate a timestamped file name
-            String fileName = "latency_cdf_" + timestamp + ".png";
+            // Generate a file name with experiment info
+            String fileName = "latency_cdf_" + filePrefix + ".png";
 
-            // Save the chart as PNG
+            // Comment out the image saving code
+            /*
             ChartUtils.saveChartAsPNG(
                     new File(fileName),
                     chart,
                     800, // width
                     600 // height
             );
-        } catch (IOException e) {
+            */
+            
+            logger.debug("CDF calculated for {}", filePrefix);
+        } catch (Exception e) {
             logger.error("Error creating latency CDF: {}", e.getMessage());
+        }
+    }
+    
+    // XML Configuration Classes
+    
+    @XmlRootElement(name = "benchmark-config")
+    @XmlAccessorType(XmlAccessType.FIELD)
+    public static class BenchmarkConfig {
+        @XmlElement(name = "pauseBetweenExperiments-ms")
+        private int pauseBetweenExperiments;
+        
+        @XmlElementWrapper(name = "endpoints")
+        @XmlElement(name = "endpoint")
+        private List<EndpointConfig> endpoints;
+        
+        @XmlElement(name = "experiment")
+        private List<ExperimentConfig> experiments;
+
+        public int getPauseBetweenExperiments() {
+            return pauseBetweenExperiments;
+        }
+
+        public List<EndpointConfig> getEndpoints() {
+            return endpoints;
+        }
+
+        public List<ExperimentConfig> getExperiments() {
+            return experiments;
+        }
+    }
+    
+    @XmlAccessorType(XmlAccessType.FIELD)
+    public static class EndpointConfig {
+        @XmlAttribute(name = "name")
+        private String name;
+        
+        @XmlValue
+        private String url;
+
+        public String getName() {
+            return name;
+        }
+
+        public String getUrl() {
+            return url;
+        }
+    }
+    
+    @XmlAccessorType(XmlAccessType.FIELD)
+    public static class ExperimentConfig {
+        @XmlElement(name = "experiment_name")
+        private String experimentName;
+        
+        @XmlElement(name = "runs")
+        private int runs;
+        
+        @XmlElement(name = "pause-between-runs-ms")
+        private int pauseBetweenRuns;
+        
+        @XmlElement(name = "connections")
+        private int connections;
+        
+        @XmlElement(name = "requests-per-second")
+        private int requestsPerSecond;
+        
+        @XmlElement(name = "duration-seconds")
+        private int duration;
+        
+        @XmlElementWrapper(name = "probabilities")
+        @XmlElement(name = "probability")
+        private List<ProbabilityConfig> probabilities;
+        
+        // Helper method to convert probabilities list to a map
+        public Map<String, Double> getProbabilitiesMap() {
+            Map<String, Double> result = new HashMap<>();
+            for (ProbabilityConfig probability : probabilities) {
+                result.put(probability.getEndpoint(), probability.getValue());
+            }
+            return result;
+        }
+
+        public String getExperimentName() {
+            return experimentName;
+        }
+
+        public int getRuns() {
+            return runs;
+        }
+
+        public int getPauseBetweenRuns() {
+            return pauseBetweenRuns;
+        }
+
+        public int getConnections() {
+            return connections;
+        }
+
+        public int getRequestsPerSecond() {
+            return requestsPerSecond;
+        }
+
+        public int getDuration() {
+            return duration;
+        }
+
+        public List<ProbabilityConfig> getProbabilities() {
+            return probabilities;
+        }
+    }
+    
+    @XmlAccessorType(XmlAccessType.FIELD)
+    public static class ProbabilityConfig {
+        @XmlAttribute(name = "endpoint")
+        private String endpoint;
+        
+        @XmlValue
+        private double value;
+
+        public String getEndpoint() {
+            return endpoint;
+        }
+
+        public double getValue() {
+            return value;
         }
     }
 }

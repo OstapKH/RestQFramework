@@ -1,0 +1,673 @@
+- name: Initialize grid 5000
+  hosts: grid5000
+  remote_user: oskilbaso
+  vars:
+    OS_image: ubuntu2204-x64-min
+  tasks:
+    - name: Go to the frontend of {{ grid_site }} then create a job
+      command: "oarsub -l host=3,walltime={{ grid_time }} -r 'now' -t deploy"
+      register: job_output
+
+    - name: Extract job ID
+      set_fact:
+        job_id: "{{ job_output.stdout | regex_search('OAR_JOB_ID=(\\d+)', '\\1') | first }}"
+
+    - name: Log job ID
+      debug:
+        msg: "Job ID: {{ job_id }}"
+
+    - name: Wait for reservation validation
+      pause:
+        minutes: 7
+
+    - name: Get job details
+      command: "oarstat -f -j {{ job_id }}"
+      register: job_details
+
+    - name: Extract assigned hostnames
+      set_fact:
+        reserved_nodes: "{{ (job_details.stdout | regex_search('assigned_hostnames = (.+)', '\\1')) | first | split('+') }}"
+
+    - name: Log reserved nodes
+      debug:
+        msg: "Reserved nodes: {{ reserved_nodes }}"
+
+    - name: Assign node names to variables
+      set_fact:
+        node1: "{{ reserved_nodes[0] }}"
+        node2: "{{ reserved_nodes[1] }}"
+        node3: "{{ reserved_nodes[2] }}"
+        cacheable: true
+
+    - name: Log node assignments
+      debug:
+        msg: "Node1: {{ node1 }}, Node2: {{ node2 }}, Node3: {{ node3 }}"
+
+    - name: Add nodes to in-memory inventory
+      add_host:
+        name: "{{ item }}"
+        ansible_host: "{{ lookup('vars', item) }}"
+        groups: reserved_nodes
+        node1: "{{ node1 }}"
+        node2: "{{ node2 }}"
+        node3: "{{ node3 }}"
+      loop:
+        - node1
+        - node2
+        - node3
+
+    - name: Deploy system on Node1
+      command: "kadeploy3 -m {{ node1 }} -e {{ OS_image }}"
+
+    - name: Deploy system on Node2
+      command: "kadeploy3 -m {{ node2 }} -e {{ OS_image }}"
+
+    - name: Deploy system on Node3
+      command: "kadeploy3 -m {{ node3 }} -e {{ OS_image }}"
+
+- name: Setup Node 1
+  hosts: node1
+  remote_user: root
+  tasks:
+    - name: Download Java 21
+      get_url:
+        url: https://download.oracle.com/java/21/latest/jdk-21_linux-x64_bin.deb
+        dest: /root/jdk-21_linux-x64_bin.deb
+      register: java_download
+
+    - name: Log Java download
+      debug:
+        msg: "Java downloaded: {{ java_download.dest }}"
+
+    - name: Install Java 21
+      apt:
+        deb: /root/jdk-21_linux-x64_bin.deb
+      register: java_install
+
+    - name: Log Java installation
+      debug:
+        msg: "Java installation completed with status: {{ java_install.changed }}"
+
+    - name: Install wget and ca-certificates
+      apt:
+        name: 
+          - wget
+          - ca-certificates
+        state: present
+      register: wget_install
+
+    - name: Add PostgreSQL repository
+      shell: sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main" >> /etc/apt/sources.list.d/pgdg.list'
+      register: pg_repo
+
+    - name: Import PostgreSQL repository signing key
+      ansible.builtin.apt_key:
+        url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
+        state: present
+      register: pg_key_import
+
+    - name: Log key import status
+      debug:
+        msg: "PostgreSQL key import status: {{ pg_key_import.changed }}"
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+      register: apt_update
+
+    - name: Install PostgreSQL
+      apt:
+        name:
+          - postgresql-14
+          - postgresql-contrib-14
+        state: present
+      register: pg_install
+
+    - name: Log PostgreSQL installation
+      debug:
+        msg: "PostgreSQL installation completed with status: {{ pg_install.changed }}"
+
+    - name: Create PostgreSQL admin user and set password
+      ansible.builtin.shell: |
+        sudo -i -u postgres psql -c "CREATE USER admin WITH PASSWORD 'password';"
+        sudo -i -u postgres psql -c "ALTER USER admin CREATEDB;"
+        sudo -i -u postgres psql -c "CREATE DATABASE tpchdb OWNER admin;"
+      register: pg_creation_status
+
+    - name: Log PostgreSQL admin user creation
+      debug:
+        msg: "PostgreSQL admin user created and database tpchdb assigned to admin."
+
+    - name: Log database creation
+      debug:
+        msg: "Database creation status: {{ pg_creation_status.stdout_lines }}"
+
+    - name: Install required Python packages for PostgreSQL
+      ansible.builtin.package:
+        name: python3-psycopg2
+        state: present
+
+    - name: Log Python package installation
+      debug:
+        msg: "Required Python packages for PostgreSQL installed."
+
+    - name: Restart PostgreSQL to apply changes
+      ansible.builtin.service:
+        name: postgresql@14-main
+        state: restarted
+
+    - name: Log PostgreSQL restart
+      debug:
+        msg: "PostgreSQL service restarted."
+
+    - name: Set installation directory for libraries
+      set_fact:
+        library_install_dir: /root/public
+
+    - name: Install podman-docker to {{ library_install_dir }}
+      apt:
+        name:
+          - podman-docker
+        state: present
+        install_recommends: no
+      environment:
+        DESTDIR: "{{ library_install_dir }}"
+
+    - name: Log installation of podman-docker
+      debug:
+        msg: "Podman-docker installed in {{ library_install_dir }}."
+
+    - name: Install docker.io to {{ library_install_dir }}
+      apt:
+        name:
+          - docker.io
+        state: present
+        install_recommends: no
+      environment:
+        DESTDIR: "{{ library_install_dir }}"
+
+    - name: Log installation of docker.io
+      debug:
+        msg: "Docker.io installed in {{ library_install_dir }}."
+
+    - name: Install Cargo and other dependencies to {{ library_install_dir }}
+      apt:
+        name:
+          - cargo
+          - pkg-config
+          - libssl-dev
+        state: present
+        install_recommends: no
+      environment:
+        DESTDIR: "{{ library_install_dir }}"
+
+    - name: Log installation of Cargo and dependencies
+      debug:
+        msg: "Cargo and other dependencies installed in {{ library_install_dir }}."
+
+    - name: Clone Scaphandre repo
+      git:
+        repo: https://github.com/hubblo-org/scaphandre.git
+        dest: "{{ library_install_dir }}/scaphandre"
+        update: no
+
+    - name: Log Scaphandre repo clone
+      debug:
+        msg: "Scaphandre repo cloned to {{ library_install_dir }}/scaphandre."
+
+    - name: Build Scaphandre
+      shell: |
+        cd {{ library_install_dir }}/scaphandre
+        cargo build --release
+
+    - name: Log Scaphandre build completion
+      debug:
+        msg: "Scaphandre built successfully."
+
+    - name: Move Scaphandre binary to /usr/local/bin
+      command: sudo mv {{ library_install_dir }}/scaphandre/target/release/scaphandre /usr/local/bin/
+
+    - name: Log Scaphandre binary move
+      debug:
+        msg: "Scaphandre binary moved to /usr/local/bin."
+
+    - name: Install Maven
+      apt:
+        name: maven
+        state: present
+      register: maven_install
+
+    - name: Initialize Maven wrapper
+      shell: mvn -N io.takari:maven:wrapper
+      register: mvn_wrapper
+
+    - name: Clone RestQFramework repository
+      git:
+        repo: https://github.com/OstapKH/RestQFramework.git
+        dest: /root/RestQFramework
+        recursive: yes
+      register: git_clone
+
+    - name: Log repository clone
+      debug:
+        msg: "Repository cloned"
+
+    - name: Build benchbase
+      shell: |
+        cd /root/RestQFramework/benchbase/
+        ./mvnw clean install -P postgres -DskipTests
+      register: benchbase_build
+
+    - name: Log benchbase build
+      debug:
+        msg: "Benchbase build completed with status: {{ benchbase_build.rc }}"
+
+    - name: Build core
+      shell: |
+        cd /root/RestQFramework/core
+        mvn clean install -P executable-jar
+      register: core_build
+
+    - name: Log core build
+      debug:
+        msg: "Core build completed with status: {{ core_build.rc }}"
+
+    - name: Configure PostgreSQL - listen_addresses
+      lineinfile:
+        path: /etc/postgresql/14/main/postgresql.conf
+        regexp: '^#?listen_addresses'
+        line: "listen_addresses = '*'"
+      register: pg_conf
+
+    - name: Configure PostgreSQL - pg_hba.conf
+      blockinfile:
+        path: /etc/postgresql/14/main/pg_hba.conf
+        block: |
+          host    all    all    0.0.0.0/0    md5
+          host    all    all    0.0.0.0/0    scram-sha-256
+      register: pg_hba
+
+    - name: Restart PostgreSQL
+      systemd:
+        name: postgresql
+        state: restarted
+      register: pg_restart
+
+    - name: Allow PostgreSQL through firewall
+      ufw:
+        rule: allow
+        port: 5432
+        proto: tcp
+      register: ufw_config
+
+    - name: Run Java application
+      shell: |
+        cd /root/RestQFramework/core
+        java -jar target/core-1.0-SNAPSHOT.jar
+
+    - name: Log Java application start
+      debug:
+        msg: "Java application exectuted (DB server)"
+
+    - name: Start Scaphandre measurement on DB server
+      shell: |
+        nohup scaphandre json -t 3600 -s {{ scaphandre_timestep_s }} --step-nano {{ scaphandre_timestep_nanoseconds }} --process-regex ".*postgres.*" -f /root/experiments_summary_dbserver.json &
+      async: 3600
+      poll: 0
+      register: scaphandre_task
+
+- name: Setup Node 2
+  hosts: node2
+  remote_user: root
+  tasks:
+    - name: Download Java 21
+      get_url:
+        url: https://download.oracle.com/java/21/latest/jdk-21_linux-x64_bin.deb
+        dest: /root/jdk-21_linux-x64_bin.deb
+      register: java_download
+
+    - name: Install Java 21
+      apt:
+        deb: /root/jdk-21_linux-x64_bin.deb
+      register: java_install
+
+    - name: Install wget and ca-certificates
+      apt:
+        name: 
+          - wget
+          - ca-certificates
+        state: present
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Set installation directory for libraries
+      set_fact:
+        library_install_dir: /root/public
+
+    - name: Install podman-docker to {{ library_install_dir }}
+      apt:
+        name:
+          - podman-docker
+        state: present
+        install_recommends: no
+      environment:
+        DESTDIR: "{{ library_install_dir }}"
+
+    - name: Log installation of podman-docker
+      debug:
+        msg: "Podman-docker installed in {{ library_install_dir }}."
+
+    - name: Install docker.io to {{ library_install_dir }}
+      apt:
+        name:
+          - docker.io
+        state: present
+        install_recommends: no
+      environment:
+        DESTDIR: "{{ library_install_dir }}"
+
+    - name: Log installation of docker.io
+      debug:
+        msg: "Docker.io installed in {{ library_install_dir }}."
+
+    - name: Install Cargo and other dependencies to {{ library_install_dir }}
+      apt:
+        name:
+          - cargo
+          - pkg-config
+          - libssl-dev
+        state: present
+        install_recommends: no
+      environment:
+        DESTDIR: "{{ library_install_dir }}"
+
+    - name: Log installation of Cargo and dependencies
+      debug:
+        msg: "Cargo and other dependencies installed in {{ library_install_dir }}."
+
+    - name: Clone Scaphandre repo
+      git:
+        repo: https://github.com/hubblo-org/scaphandre.git
+        dest: "{{ library_install_dir }}/scaphandre"
+        update: no
+
+    - name: Log Scaphandre repo clone
+      debug:
+        msg: "Scaphandre repo cloned to {{ library_install_dir }}/scaphandre."
+
+    - name: Build Scaphandre
+      shell: |
+        cd {{ library_install_dir }}/scaphandre
+        cargo build --release
+
+    - name: Log Scaphandre build completion
+      debug:
+        msg: "Scaphandre built successfully."
+
+    - name: Move Scaphandre binary to /usr/local/bin
+      command: sudo mv {{ library_install_dir }}/scaphandre/target/release/scaphandre /usr/local/bin/
+
+    - name: Log Scaphandre binary move
+      debug:
+        msg: "Scaphandre binary moved to /usr/local/bin."
+
+    - name: Install Maven
+      apt:
+        name: maven
+        state: present
+
+    - name: Initialize Maven wrapper
+      shell: mvn -N io.takari:maven:wrapper
+
+    - name: Clone RestQFramework repository
+      git:
+        repo: https://github.com/OstapKH/RestQFramework.git
+        dest: /root/RestQFramework
+        recursive: yes
+
+    - name: Build benchbase
+      shell: |
+        cd /root/RestQFramework/benchbase/
+        ./mvnw clean install -P postgres -DskipTests
+
+    - name: Build core
+      shell: |
+        cd /root/RestQFramework/core
+        mvn clean install -P simple-jar
+
+    - name: Modify application properties
+      lineinfile:
+        path: /root/RestQFramework/api-http/src/main/resources/application.properties
+        regexp: '^spring.datasource.url=.*'
+        line: "spring.datasource.url=jdbc:postgresql://{{ node1 }}:5432/tpchdb"
+
+    - name: Modify Jakarta persistence URL
+      lineinfile:
+        path: /root/RestQFramework/api-http/src/main/resources/application.properties
+        regexp: '^jakarta.persistence.jdbc.url=.*'
+        line: "jakarta.persistence.jdbc.url=jdbc:postgresql://{{ node1 }}:5432/tpchdb"
+
+    - name: Build API HTTP module
+      shell: |
+        cd /root/RestQFramework/api-http
+        mvn clean install -P springboot-app
+
+    - name: Run API server
+      shell: |
+        cd /root/RestQFramework/api-http
+        java -jar target/api-http-1.0-SNAPSHOT.jar
+      async: 3600
+      poll: 0        
+      register: api_server
+
+    - name: Log API server start
+      debug:
+        msg: "API server started on Node2. {{ node2 }}"
+
+    - name: Start Scaphandre measurement on API server
+      shell: |
+        nohup scaphandre json -t 3600 -s {{ scaphandre_timestep_s }} --step-nano {{ scaphandre_timestep_nanoseconds }} -f /root/experiments_summary_apiserver.json &
+      async: 3600
+      poll: 0
+      register: API_energy_measurement
+
+- name: Setup Node 3
+  hosts: node3
+  remote_user: root
+  tasks:
+    - name: Download Java 21
+      get_url:
+        url: https://download.oracle.com/java/21/latest/jdk-21_linux-x64_bin.deb
+        dest: /root/jdk-21_linux-x64_bin.deb
+      register: java_download
+
+    - name: Install Java 21
+      apt:
+        deb: /root/jdk-21_linux-x64_bin.deb
+      register: java_install
+
+    - name: Install wget and ca-certificates
+      apt:
+        name: 
+          - wget
+          - ca-certificates
+        state: present
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Maven
+      apt:
+        name: maven
+        state: present
+
+    - name: Initialize Maven wrapper
+      shell: mvn -N io.takari:maven:wrapper
+
+    - name: Clone RestQFramework repository
+      git:
+        repo: https://github.com/OstapKH/RestQFramework.git
+        dest: /root/RestQFramework
+        recursive: yes
+
+    - name: Build benchbase
+      shell: |
+        cd /root/RestQFramework/benchbase/
+        ./mvnw clean install -P postgres -DskipTests
+
+    - name: Build core
+      shell: |
+        cd /root/RestQFramework/core
+        mvn clean install -P simple-jar
+
+    - name: Copy benchmark-config.xml to server
+      copy:
+        src: ./benchmark-config.xml
+        dest: /root/RestQFramework/api-http/src/main/resources/benchmark-config.xml
+        mode: 0644
+      register: config_copy
+
+    - name: Log configuration file copy
+      debug:
+        msg: "Benchmark configuration file copied to server"
+
+    - name: Modify API port URL in ApiBenchmark.java
+      lineinfile:
+        path: /root/RestQFramework/api-http/src/main/java/com/restq/api_http/Benchmark/ApiBenchmark.java 
+        regexp: '^    private static final String BASE_URL =.*'
+        line: "    private static final String BASE_URL = \"http://{{ node2 }}:8086/api/reports\";"
+
+    - name: Build Benchmark module
+      shell: |
+        cd /root/RestQFramework/api-http
+        mvn clean install -P benchmark-app
+
+    - name: Run benchmark
+      shell: |
+        cd /root/RestQFramework/api-http
+        java -jar target/api-http-1.0-SNAPSHOT-jar-with-dependencies.jar
+          
+- name: Stopping Scaphandre measurement on Node 1
+  hosts: node1
+  remote_user: root
+  tasks:
+    - name: Stop Scaphandre measurement on Node 1
+      shell: |
+        pkill -f "scaphandre json -t 3600 -s {{ scaphandre_timestep_s }} --step-nano {{ scaphandre_timestep_nanoseconds }}"
+      ignore_errors: true
+
+    - name: Log Scaphandre stop on Node 1
+      debug:
+        msg: "Scaphandre measurement stopped on DB server."
+
+- name: Stopping Scaphandre measurement on Node 2
+  hosts: node2
+  remote_user: root
+  tasks:
+    - name: Stop Scaphandre measurement on Node 2
+      shell: |
+        pkill -f "scaphandre json -t 3600 -s {{ scaphandre_timestep_s }} --step-nano {{ scaphandre_timestep_nanoseconds }}"
+      ignore_errors: true
+
+    - name: Log Scaphandre stop on Node 2
+      debug:
+        msg: "Scaphandre measurement stopped on API server."
+
+- name: Fetch results from Node 1
+  hosts: node1
+  remote_user: root
+  tasks:
+    - name: Fetch results to controller
+      fetch:
+        src: /root/experiments_summary_dbserver.json
+        dest: /tmp/experiments_summary_dbserver.json
+        flat: yes
+
+- name: Copy results to Node 3 from Node 1
+  hosts: node3
+  remote_user: root
+  tasks:
+    - name: Create directory for fixed JSON files
+      file:
+        path: /root/fixed_json_files
+        state: directory
+        mode: '0755'
+        
+    - name: Copy results from controller to Node 3
+      copy:
+        src: /tmp/experiments_summary_dbserver.json
+        dest: /root/fixed_json_files/experiments_summary_dbserver.json
+
+- name: Fetch results from Node 2
+  hosts: node2
+  remote_user: root
+  tasks:
+    - name: Fetch results to controller
+      fetch:
+        src: /root/experiments_summary_apiserver.json
+        dest: /tmp/experiments_summary_apiserver.json
+        flat: yes
+
+- name: Copy results to Node 3 from Node 2
+  hosts: node3
+  remote_user: root
+  tasks:
+    - name: Create directory for fixed JSON files
+      file:
+        path: /root/fixed_json_files
+        state: directory
+        mode: '0755'
+        
+    - name: Copy results from controller to Node 3
+      copy:
+        src: /tmp/experiments_summary_apiserver.json
+        dest: /root/fixed_json_files/experiments_summary_apiserver.json
+        
+    - name: Find benchmark results files
+      find:
+        paths: /root/RestQFramework/api-http
+        patterns: "benchmark_results_*.json"
+        recurse: yes
+      register: benchmark_files
+      
+    - name: Copy benchmark results to fixed json directory
+      copy:
+        src: "{{ item.path }}"
+        dest: /root/fixed_json_files/
+        remote_src: yes
+      with_items: "{{ benchmark_files.files }}"
+        
+    - name: Copy JsonCombiner.java to server
+      copy:
+        src: /root/RestQFramework/api-http/src/main/java/com/restq/utils/JsonCombiner.java
+        dest: /root/RestQFramework/api-http/src/main/java/com/restq/utils/JsonCombiner.java
+        remote_src: yes
+        mode: '0644'
+        
+    - name: Create timestamp variable
+      set_fact:
+        timestamp: "{{ ansible_date_time.iso8601 }}"
+        
+    - name: Build and run JSON combiner
+      shell: |
+        cd /root/RestQFramework/api-http
+        javac -cp /root/RestQFramework/api-http/target/api-http-1.0-SNAPSHOT-jar-with-dependencies.jar src/main/java/com/restq/utils/JsonCombiner.java
+        java -cp /root/RestQFramework/api-http/target/api-http-1.0-SNAPSHOT-jar-with-dependencies.jar:src/main/java com.restq.utils.JsonCombiner /root/fixed_json_files /root/combined_results_{{ timestamp }}.json
+      register: combiner_output
+      
+    - name: Log combiner output
+      debug:
+        msg: "{{ combiner_output.stdout_lines }}"
+        
+    - name: Fetch combined results file
+      fetch:
+        src: /root/combined_results_{{ timestamp }}.json
+        dest: ~/Desktop/Results_rest_q_xml_benchmarks/combined_results_{{ timestamp }}.json
+        flat: yes
+        
+    - name: Log results download
+      debug:
+        msg: "Combined benchmark results downloaded to your local machine at ~/Desktop/Results_rest_q_xml_benchmarks/combined_results_{{ timestamp }}.json"

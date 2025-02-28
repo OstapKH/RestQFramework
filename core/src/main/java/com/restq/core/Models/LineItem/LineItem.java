@@ -6,7 +6,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 
 import java.math.BigDecimal;
-import java.sql.Date;
+import java.time.LocalDate;
 
 @Entity
 @Table(name = "LINEITEM")
@@ -44,13 +44,13 @@ public class LineItem {
     private String lineStatus;
 
     @Column(name = "L_SHIPDATE", nullable = false)
-    private Date shipDate;
+    private LocalDate shipDate;
 
     @Column(name = "L_COMMITDATE", nullable = false)
-    private Date commitDate;
+    private LocalDate commitDate;
 
     @Column(name = "L_RECEIPTDATE", nullable = false)
-    private Date receiptDate;
+    private LocalDate receiptDate;
 
     @Column(name = "L_SHIPINSTRUCT", length = 25, nullable = false, columnDefinition = "bpchar")
     private String shipInstruct;
@@ -64,11 +64,11 @@ public class LineItem {
     public LineItem() {
     }
 
-    public Date getCommitDate() {
+    public LocalDate getCommitDate() {
         return commitDate;
     }
 
-    public void setCommitDate(Date commitDate) {
+    public void setCommitDate(LocalDate commitDate) {
         this.commitDate = commitDate;
     }
 
@@ -96,19 +96,19 @@ public class LineItem {
         this.shipInstruct = shipInstruct;
     }
 
-    public Date getReceiptDate() {
+    public LocalDate getReceiptDate() {
         return receiptDate;
     }
 
-    public void setReceiptDate(Date receiptDate) {
+    public void setReceiptDate(LocalDate receiptDate) {
         this.receiptDate = receiptDate;
     }
 
-    public Date getShipDate() {
+    public LocalDate getShipDate() {
         return shipDate;
     }
 
-    public void setShipDate(Date shipDate) {
+    public void setShipDate(LocalDate shipDate) {
         this.shipDate = shipDate;
     }
 

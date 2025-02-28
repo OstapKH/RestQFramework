@@ -10,7 +10,6 @@ import jakarta.persistence.Table;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.JoinColumn;
-import org.hibernate.annotations.Index;
 import jakarta.persistence.CascadeType;
 
 import java.util.List;

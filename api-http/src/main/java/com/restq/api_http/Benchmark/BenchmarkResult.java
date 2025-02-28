@@ -16,6 +16,7 @@ public class BenchmarkResult {
     private Map<String, Double> probabilities;
     private Map<String, String> endpoints;
     private long timestamp;
+    private String experimentName;
 
     public long getStartTimestamp() {
         return startTimestamp;
@@ -119,5 +120,13 @@ public class BenchmarkResult {
 
     public void setTimestamp(long timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public String getExperimentName() {
+        return experimentName;
+    }
+
+    public void setExperimentName(String experimentName) {
+        this.experimentName = experimentName;
     }
 }
