@@ -640,13 +640,6 @@
         remote_src: yes
       with_items: "{{ benchmark_files.files }}"
         
-    - name: Copy JsonCombiner.java to server
-      copy:
-        src: /root/RestQFramework/api-http/src/main/java/com/restq/utils/JsonCombiner.java
-        dest: /root/RestQFramework/api-http/src/main/java/com/restq/utils/JsonCombiner.java
-        remote_src: yes
-        mode: '0644'
-        
     - name: Create timestamp variable
       set_fact:
         timestamp: "{{ ansible_date_time.iso8601 }}"

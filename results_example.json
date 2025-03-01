@@ -1,0 +1,593 @@
+{
+    "api_server_energy": [
+        {"container": null,
+            "exe": "/usr/local/bin/scaphandre",
+            "cmdline": "scaphandrejson-t3600-s0--step-nano10000000-f/root/experiments_summary_apiserver.json",
+            "resources_usage": null,
+            "pid": 14574,
+            "consumption": 21679820,
+            "timestamp": 1740738011.4454985
+        },
+        {
+            "container": null,
+            "exe": "/usr/lib/jvm/jdk-21.0.6-oracle-x64/bin/java",
+            "cmdline": "java-jartarget/api-http-1.0-SNAPSHOT.jar",
+            "resources_usage": null,
+            "pid": 14479,
+            "consumption": 11011972,
+            "timestamp": 1740738011.4451883
+        },
+        {
+            "container": null,
+            "exe": "",
+            "cmdline": "",
+            "resources_usage": null,
+            "pid": 41,
+            "consumption": 0,
+            "timestamp": 1740738011.4451654
+        },
+        {
+            "container": null,
+            "exe": "",
+            "cmdline": "",
+            "resources_usage": null,
+            "pid": 502,
+            "consumption": 0,
+            "timestamp": 1740738011.445167
+        },
+        {
+            "container": null,
+            "exe": "",
+            "cmdline": "",
+            "resources_usage": null,
+            "pid": 254,
+            "consumption": 0,
+            "timestamp": 1740738011.4451692
+        },
+        {
+            "container": null,
+            "exe": "",
+            "cmdline": "",
+            "resources_usage": null,
+            "pid": 1261,
+            "consumption": 0,
+            "timestamp": 1740738011.4451702
+        },
+        {
+            "container": null,
+            "exe": "",
+            "cmdline": "",
+            "resources_usage": null,
+            "pid": 1725,
+            "consumption": 0,
+            "timestamp": 1740738011.4451718
+        },
+        {
+            "container": null,
+            "exe": "",
+            "cmdline": "",
+            "resources_usage": null,
+            "pid": 495,
+            "consumption": 0,
+            "timestamp": 1740738011.4451737
+        },
+        {
+            "container": null,
+            "exe": "",
+            "cmdline": "",
+            "resources_usage": null,
+            "pid": 119,
+            "consumption": 0,
+            "timestamp": 1740738011.445176
+        },
+        {
+            "container": null,
+            "exe": "",
+            "cmdline": "",
+            "resources_usage": null,
+            "pid": 581,
+            "consumption": 0,
+            "timestamp": 1740738011.4451768
+        },
+        {
+            "container": null,
+            "exe": "/usr/local/bin/scaphandre",
+            "cmdline": "scaphandrejson-t3600-s0--step-nano10000000-f/root/experiments_summary_apiserver.json",
+            "resources_usage": null,
+            "pid": 14574,
+            "consumption": 23737538,
+            "timestamp": 1740738011.56767
+        },
+        {
+            "container": null,
+            "exe": "/usr/lib/jvm/jdk-21.0.6-oracle-x64/bin/java",
+            "cmdline": "java-jartarget/api-http-1.0-SNAPSHOT.jar",
+            "resources_usage": null,
+            "pid": 14479,
+            "consumption": 22658560,
+            "timestamp": 1740738011.5675116
+        },
+        {
+            "container": null,
+            "exe": "",
+            "cmdline": "",
+            "resources_usage": null,
+            "pid": 41,
+            "consumption": 0,
+            "timestamp": 1740738011.5675018
+        },
+        {
+            "container": null,
+            "exe": "",
+            "cmdline": "",
+            "resources_usage": null,
+            "pid": 502,
+            "consumption": 0,
+            "timestamp": 1740738011.5675032
+        },
+        {
+            "container": null,
+            "exe": "",
+            "cmdline": "",
+            "resources_usage": null,
+            "pid": 254,
+            "consumption": 0,
+            "timestamp": 1740738011.5675044
+        },
+        {
+            "container": null,
+            "exe": "",
+            "cmdline": "",
+            "resources_usage": null,
+            "pid": 1261,
+            "consumption": 0,
+            "timestamp": 1740738011.5675054
+        },
+        {
+            "container": null,
+            "exe": "",
+            "cmdline": "",
+            "resources_usage": null,
+            "pid": 1725,
+            "consumption": 0,
+            "timestamp": 1740738011.5675058
+        },
+        {
+            "container": null,
+            "exe": "",
+            "cmdline": "",
+            "resources_usage": null,
+            "pid": 495,
+            "consumption": 0,
+            "timestamp": 1740738011.5675063
+        },
+        {
+            "container": null,
+            "exe": "",
+            "cmdline": "",
+            "resources_usage": null,
+            "pid": 119,
+            "consumption": 0,
+            "timestamp": 1740738011.5675073
+        },
+        {
+            "container": null,
+            "exe": "",
+            "cmdline": "",
+            "resources_usage": null,
+            "pid": 581,
+            "consumption": 0,
+            "timestamp": 1740738011.5675075
+        },
+        {
+            "container": null,
+            "exe": "/usr/lib/jvm/jdk-21.0.6-oracle-x64/bin/java",
+            "cmdline": "java-jartarget/api-http-1.0-SNAPSHOT.jar",
+            "resources_usage": null,
+            "pid": 14479,
+            "consumption": 42103344,
+            "timestamp": 1740738011.683098
+        }
+    ],
+    "db_server_energy": [
+        {
+            "container": null,
+            "exe": "/usr/local/bin/scaphandre",
+            "cmdline": "scaphandrejson-t3600-s0--step-nano10000000--process-regex.*postgres.*-f/root/experiments_summary_dbserver.json",
+            "resources_usage": null,
+            "pid": 18116,
+            "consumption": 25139278,
+            "timestamp": 1740737608.3627746
+        },
+        {
+            "container": null,
+            "exe": "/usr/lib/postgresql/14/bin/postgres",
+            "cmdline": "postgres: 14/main: background writer",
+            "resources_usage": null,
+            "pid": 17781,
+            "consumption": 349156.62,
+            "timestamp": 1740737608.363043
+        },
+        {
+            "container": null,
+            "exe": "/usr/lib/postgresql/14/bin/postgres",
+            "cmdline": "postgres: 14/main: autovacuum launcher",
+            "resources_usage": null,
+            "pid": 17783,
+            "consumption": 349156.62,
+            "timestamp": 1740737608.363108
+        },
+        {
+            "container": null,
+            "exe": "/usr/lib/postgresql/14/bin/postgres",
+            "cmdline": "postgres: 14/main: stats collector",
+            "resources_usage": null,
+            "pid": 17784,
+            "consumption": 0,
+            "timestamp": 1740737608.3628533
+        },
+        {
+            "container": null,
+            "exe": "/usr/lib/postgresql/14/bin/postgres",
+            "cmdline": "postgres: 14/main: checkpointer",
+            "resources_usage": null,
+            "pid": 17780,
+            "consumption": 0,
+            "timestamp": 1740737608.3629544
+        },
+        {
+            "container": null,
+            "exe": "/usr/lib/postgresql/14/bin/postgres",
+            "cmdline": "postgres: 14/main: walwriter",
+            "resources_usage": null,
+            "pid": 17782,
+            "consumption": 0,
+            "timestamp": 1740737608.3629785
+        },
+        {
+            "container": null,
+            "exe": "/usr/lib/postgresql/14/bin/postgres",
+            "cmdline": "postgres: 14/main: logical replication launcher",
+            "resources_usage": null,
+            "pid": 17785,
+            "consumption": 0,
+            "timestamp": 1740737608.363091
+        },
+        {
+            "container": null,
+            "exe": "/usr/lib/postgresql/14/bin/postgres",
+            "cmdline": "/usr/lib/postgresql/14/bin/postgres-D/var/lib/postgresql/14/main-cconfig_file=/etc/postgresql/14/main/postgresql.conf",
+            "resources_usage": null,
+            "pid": 17778,
+            "consumption": 0,
+            "timestamp": 1740737608.3631442
+        },
+        {
+            "container": null,
+            "exe": "/usr/local/bin/scaphandre",
+            "cmdline": "scaphandrejson-t3600-s0--step-nano10000000--process-regex.*postgres.*-f/root/experiments_summary_dbserver.json",
+            "resources_usage": null,
+            "pid": 18116,
+            "consumption": 21524414,
+            "timestamp": 1740737608.4517436
+        },
+        {
+            "container": null,
+            "exe": "/usr/lib/postgresql/14/bin/postgres",
+            "cmdline": "postgres: 14/main: stats collector",
+            "resources_usage": null,
+            "pid": 17784,
+            "consumption": 0,
+            "timestamp": 1740737608.4517848
+        },
+        {
+            "container": null,
+            "exe": "/usr/lib/postgresql/14/bin/postgres",
+            "cmdline": "postgres: 14/main: checkpointer",
+            "resources_usage": null,
+            "pid": 17780,
+            "consumption": 0,
+            "timestamp": 1740737608.4518528
+        },
+        {
+            "container": null,
+            "exe": "/usr/lib/postgresql/14/bin/postgres",
+            "cmdline": "postgres: 14/main: walwriter",
+            "resources_usage": null,
+            "pid": 17782,
+            "consumption": 0,
+            "timestamp": 1740737608.4518702
+        },
+        {
+            "container": null,
+            "exe": "/usr/lib/postgresql/14/bin/postgres",
+            "cmdline": "postgres: 14/main: background writer",
+            "resources_usage": null,
+            "pid": 17781,
+            "consumption": 0,
+            "timestamp": 1740737608.4519155
+        },
+        {
+            "container": null,
+            "exe": "/usr/lib/postgresql/14/bin/postgres",
+            "cmdline": "postgres: 14/main: logical replication launcher",
+            "resources_usage": null,
+            "pid": 17785,
+            "consumption": 0,
+            "timestamp": 1740737608.451951
+        },
+        {
+            "container": null,
+            "exe": "/usr/lib/postgresql/14/bin/postgres",
+            "cmdline": "postgres: 14/main: autovacuum launcher",
+            "resources_usage": null,
+            "pid": 17783,
+            "consumption": 0,
+            "timestamp": 1740737608.451964
+        },
+        {
+            "container": null,
+            "exe": "/usr/lib/postgresql/14/bin/postgres",
+            "cmdline": "/usr/lib/postgresql/14/bin/postgres-D/var/lib/postgresql/14/main-cconfig_file=/etc/postgresql/14/main/postgresql.conf",
+            "resources_usage": null,
+            "pid": 17778,
+            "consumption": 0,
+            "timestamp": 1740737608.451992
+        },
+        {
+            "container": null,
+            "exe": "/usr/local/bin/scaphandre",
+            "cmdline": "scaphandrejson-t3600-s0--step-nano10000000--process-regex.*postgres.*-f/root/experiments_summary_dbserver.json",
+            "resources_usage": null,
+            "pid": 18116,
+            "consumption": 22503024,
+            "timestamp": 1740737608.5404787
+        },
+        {
+            "container": null,
+            "exe": "/usr/lib/postgresql/14/bin/postgres",
+            "cmdline": "postgres: 14/main: stats collector",
+            "resources_usage": null,
+            "pid": 17784,
+            "consumption": 0,
+            "timestamp": 1740737608.5405219
+        }
+    ],
+    "benchmark_results": {
+        "endpoints": {
+            "supplier-part-info": "/supplier-part-info?size=10&type=A&region=America",
+            "local-supplier-volume": "/local-supplier-volume?region=Asia&startDate=2023-01-01",
+            "order-revenue-info": "/order-revenue-info?segment=Automobile&date=2023-01-01",
+            "pricing-summary": "/pricing-summary?delta=3&shipDate=1998-12-01",
+            "order-priority-count": "/order-priority-count?date=2023-01-01",
+            "revenue-increase": "/revenue-increase?discount=0.2&quantity=10&startDate=2023-01-01"
+        },
+        "global_config": {"pauseBetweenExperiments_ms": 5000},
+        "pauseBetweenExperiments_ms": 5000,
+        "experiments": {
+            "NAME_2": {
+                "duration_seconds": 30,
+                "requests_per_second": 10,
+                "pause_between_runs_ms": 5000,
+                "runs_configured": 3,
+                "probabilities": {
+                    "supplier-part-info": 0.4,
+                    "local-supplier-volume": 0.1,
+                    "order-revenue-info": 0.1,
+                    "pricing-summary": 0.2,
+                    "order-priority-count": 0.1,
+                    "revenue-increase": 0.1
+                },
+                "runs": [
+                    {
+                        "experiment_name": "NAME_2",
+                        "start_timestamp": 1740668350019,
+                        "latencies": [
+                            {
+                                "latency_ns": 39817250,
+                                "timestamp": 1740668350028
+                            },
+                            {
+                                "latency_ns": 37559917,
+                                "timestamp": 1740668350029
+                            },
+                            {
+                                "latency_ns": 36357708,
+                                "timestamp": 1740668350032
+                            },
+                            {
+                                "latency_ns": 34197000,
+                                "timestamp": 1740668350034
+                            },
+                            {
+                                "latency_ns": 7088917,
+                                "timestamp": 1740668350067
+                            },
+                            {
+                                "latency_ns": 6848167,
+                                "timestamp": 1740668350068
+                            },
+                            {
+                                "latency_ns": 5494958,
+                                "timestamp": 1740668350068
+                            },
+                            {
+                                "latency_ns": 6174292,
+                                "timestamp": 1740668350068
+                            },
+                            {
+                                "latency_ns": 3024959,
+                                "timestamp": 1740668350074
+                            },
+                            {
+                                "latency_ns": 5324084,
+                                "timestamp": 1740668350074
+                            },
+                            {
+                                "latency_ns": 3380834,
+                                "timestamp": 1740668350074
+                            },
+                            {
+                                "latency_ns": 2708916,
+                                "timestamp": 1740668350075
+                            },
+                            {
+                                "latency_ns": 3423208,
+                                "timestamp": 1740668350077
+                            },
+                            {
+                                "latency_ns": 2990250,
+                                "timestamp": 1740668350077
+                            },
+                            {
+                                "latency_ns": 5842125,
+                                "timestamp": 1740668350077
+                            },
+                            {
+                                "latency_ns": 4490209,
+                                "timestamp": 1740668350079
+                            },
+                            {
+                                "latency_ns": 2873125,
+                                "timestamp": 1740668350080
+                            },
+                            {
+                                "latency_ns": 4543334,
+                                "timestamp": 1740668350081
+                            },
+                            {
+                                "latency_ns": 3227333,
+                                "timestamp": 1740668350083
+                            },
+                            {
+                                "latency_ns": 9292291,
+                                "timestamp": 1740668350083
+                            },
+                            {
+                                "latency_ns": 3502875,
+                                "timestamp": 1740668350084
+                            },
+                            {
+                                "latency_ns": 5189000,
+                                "timestamp": 1740668350085
+                            },
+                            {
+                                "latency_ns": 3596208,
+                                "timestamp": 1740668350086
+                            }
+                        ],
+                        "goodput": 27.461211039406837,
+                        "expected_duration_ms": 30000,
+                        "terminals": 4,
+                        "latency_distribution": {
+                            "max_latency_ns": 3759662417,
+                            "percentiles": {
+                                "p99": 1042783750,
+                                "p25": 2930667,
+                                "p90": 539692583,
+                                "p95": 677146833,
+                                "p75": 9367208
+                            },
+                            "median_latency_ns": 4757625,
+                            "min_latency_ns": 508000
+                        },
+                        "requests_per_second": 10,
+                        "end_timestamp": 1740668481265,
+                        "successful_requests": 1200,
+                        "run_number": 2,
+                        "total_requests": 1200,
+                        "elapsed_time_ms": 43698,
+                        "throughput": 27.461211039406837,
+                        "connections": 4,
+                        "timestamp": 1740668481265
+                    }
+                ],
+                "connections": 4
+            },
+            "NAME_1": {
+                "duration_seconds": 30,
+                "requests_per_second": 10,
+                "pause_between_runs_ms": 10000,
+                "runs_configured": 3,
+                "probabilities": {
+                    "supplier-part-info": 0.4,
+                    "local-supplier-volume": 0.1,
+                    "order-revenue-info": 0.1,
+                    "pricing-summary": 0.2,
+                    "order-priority-count": 0.1,
+                    "revenue-increase": 0.1
+                },
+                "runs": [{
+                    "experiment_name": "NAME_1",
+                    "start_timestamp": 1740668183999,
+                    "latencies": [
+                        {
+                            "latency_ns": 110719583,
+                            "timestamp": 1740668187035
+                        },
+                        {
+                            "latency_ns": 110817500,
+                            "timestamp": 1740668187035
+                        },
+                        {
+                            "latency_ns": 110727708,
+                            "timestamp": 1740668187035
+                        },
+                        {
+                            "latency_ns": 108213708,
+                            "timestamp": 1740668187037
+                        },
+                        {
+                            "latency_ns": 26602458,
+                            "timestamp": 1740668187146
+                        },
+                        {
+                            "latency_ns": 32683708,
+                            "timestamp": 1740668187146
+                        },
+                        {
+                            "latency_ns": 12429333,
+                            "timestamp": 1740668187146
+                        },
+                        {
+                            "latency_ns": 12435541,
+                            "timestamp": 1740668187146
+                        },
+                        {
+                            "latency_ns": 22980209,
+                            "timestamp": 1740668187158
+                        }
+                    ],
+                    "goodput": 34.66004274738606,
+                    "expected_duration_ms": 30000,
+                    "terminals": 4,
+                    "latency_distribution": {
+                        "max_latency_ns": 1417484917,
+                        "percentiles": {
+                            "p99": 783443167,
+                            "p25": 2304375,
+                            "p90": 379355667,
+                            "p95": 465963583,
+                            "p75": 9357250
+                        },
+                        "median_latency_ns": 5445271,
+                        "min_latency_ns": 619333
+                    },
+                    "requests_per_second": 10,
+                    "end_timestamp": 1740668344987,
+                    "successful_requests": 1200,
+                    "run_number": 2,
+                    "total_requests": 1200,
+                    "elapsed_time_ms": 34622,
+                    "throughput": 34.66004274738606,
+                    "connections": 4,
+                    "timestamp": 1740668344988
+                }],
+                "connections": 4
+            }
+        },
+        "base_url": "http://localhost:8086/api/reports",
+        "config_file": "src/main/resources/benchmark-config.xml",
+        "timestamp": "20250227_165623"
+    }
+}
