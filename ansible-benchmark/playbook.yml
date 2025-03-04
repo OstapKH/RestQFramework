@@ -457,7 +457,7 @@
     - name: Run API server
       shell: |
         cd /root/RestQFramework/api-http
-        java -jar target/api-http-1.0-SNAPSHOT.jar
+        java -jar target/api-http-1.0-SNAPSHOT.jar > /root/api_server.log 2>&1
       async: 3600
       poll: 0        
       register: api_server
@@ -548,7 +548,7 @@
     - name: Run benchmark
       shell: |
         cd /root/RestQFramework/api-http
-        java -jar target/api-http-1.0-SNAPSHOT-jar-with-dependencies.jar
+        java -jar target/api-http-1.0-SNAPSHOT-jar-with-dependencies.jar > /root/benchmark_client.log 2>&1
           
 - name: Stopping Scaphandre measurement on Node 1
   hosts: node1
@@ -664,3 +664,45 @@
     - name: Log results download
       debug:
         msg: "Combined benchmark results downloaded to your local machine at ~/Desktop/Results_rest_q_xml_benchmarks/combined_results_{{ timestamp }}.json"
+
+- name: Fetch log files from Node 2 (API server)
+  hosts: node2
+  remote_user: root
+  tasks:
+    - name: Fetch API server logs
+      fetch:
+        src: /root/api_server.log
+        dest: ~/Desktop/Results_rest_q_xml_benchmarks/api_server_{{ ansible_date_time.iso8601 }}.log
+        flat: yes
+
+    - name: Log API server log download
+      debug:
+        msg: "API server logs downloaded to your local machine at ~/Desktop/Results_rest_q_xml_benchmarks/api_server_{{ ansible_date_time.iso8601 }}.log"
+        
+    - name: Fetch system logs
+      fetch:
+        src: /var/log/syslog
+        dest: ~/Desktop/Results_rest_q_xml_benchmarks/node2_syslog_{{ ansible_date_time.iso8601 }}.log
+        flat: yes
+      ignore_errors: true
+      
+- name: Fetch log files from Node 3 (Benchmark client)
+  hosts: node3
+  remote_user: root
+  tasks:
+    - name: Fetch benchmark client logs
+      fetch:
+        src: /root/benchmark_client.log
+        dest: ~/Desktop/Results_rest_q_xml_benchmarks/benchmark_client_{{ ansible_date_time.iso8601 }}.log
+        flat: yes
+
+    - name: Log benchmark client log download
+      debug:
+        msg: "Benchmark client logs downloaded to your local machine at ~/Desktop/Results_rest_q_xml_benchmarks/benchmark_client_{{ ansible_date_time.iso8601 }}.log"
+    
+    - name: Fetch system logs
+      fetch:
+        src: /var/log/syslog
+        dest: ~/Desktop/Results_rest_q_xml_benchmarks/node3_syslog_{{ ansible_date_time.iso8601 }}.log
+        flat: yes
+      ignore_errors: true

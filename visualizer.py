@@ -218,12 +218,16 @@ class ExperimentVisualizer:
             # Extract experiment names from benchmark_results.experiments
             if "benchmark_results" in self.data and "experiments" in self.data["benchmark_results"]:
                 experiment_ids = list(self.data["benchmark_results"]["experiments"].keys())
-                self.experiment_selector['values'] = experiment_ids
-                if experiment_ids:
-                    self.experiment_selector.current(0)
-                    # Force selection of first experiment and update plot after loading data
-                    self.experiment_var.set(experiment_ids[0])
-                    self.on_experiment_selected(None)
+                
+                # Add "All Experiments" as the first option
+                all_experiments_option = "All Experiments"
+                self.experiment_selector['values'] = [all_experiments_option] + experiment_ids
+                
+                # Select the first option (All Experiments)
+                self.experiment_selector.current(0)
+                self.experiment_var.set(all_experiments_option)
+                self.on_experiment_selected(None)
+                
                 self.status_var.set(f"Loaded {len(experiment_ids)} experiments from {os.path.basename(file_path)}")
             else:
                 messagebox.showerror("Error", "No experiments found in the data file.")
@@ -248,6 +252,45 @@ class ExperimentVisualizer:
         # Get selected experiment data
         experiment_id = self.experiment_var.get()
         
+        # Handle "All Experiments" selection
+        if experiment_id == "All Experiments":
+            if "benchmark_results" in self.data and "experiments" in self.data["benchmark_results"]:
+                experiments = self.data["benchmark_results"]["experiments"]
+                
+                # Display a summary of all experiments
+                row = 0
+                ttk.Label(self.details_frame, text="All Experiments Summary", font=("Arial", 12, "bold")).grid(row=row, column=0, columnspan=2, sticky=tk.W, padx=5, pady=5)
+                row += 1
+                
+                ttk.Label(self.details_frame, text=f"Total Experiments: {len(experiments)}", font=("Arial", 10)).grid(row=row, column=0, columnspan=2, sticky=tk.W, padx=5, pady=2)
+                row += 1
+                
+                # Add a brief overview of each experiment
+                for exp_id, exp_data in experiments.items():
+                    ttk.Label(self.details_frame, text=f"Experiment: {exp_id}", font=("Arial", 10, "bold")).grid(row=row, column=0, columnspan=2, sticky=tk.W, padx=5, pady=2)
+                    row += 1
+                    
+                    runs_count = len(exp_data.get("runs", []))
+                    ttk.Label(self.details_frame, text=f"Runs: {runs_count}", font=("Arial", 10)).grid(row=row, column=0, sticky=tk.W, padx=20, pady=2)
+                    row += 1
+                    
+                    if "duration_seconds" in exp_data:
+                        ttk.Label(self.details_frame, text=f"Duration: {exp_data['duration_seconds']} seconds", font=("Arial", 10)).grid(row=row, column=0, sticky=tk.W, padx=20, pady=2)
+                        row += 1
+                    
+                    if "requests_per_second" in exp_data:
+                        ttk.Label(self.details_frame, text=f"Rate: {exp_data['requests_per_second']} req/s", font=("Arial", 10)).grid(row=row, column=0, sticky=tk.W, padx=20, pady=2)
+                        row += 1
+                    
+                    # Add a separator
+                    ttk.Separator(self.details_frame, orient='horizontal').grid(row=row, column=0, columnspan=2, sticky='ew', padx=5, pady=5)
+                    row += 1
+            
+            # Update the plot with all experiments
+            self.update_plot()
+            return
+            
+        # Regular single experiment selection
         if "benchmark_results" in self.data and "experiments" in self.data["benchmark_results"]:
             experiment = self.data["benchmark_results"]["experiments"].get(experiment_id, {})
         else:
@@ -322,28 +365,37 @@ class ExperimentVisualizer:
             return
         
         experiment_id = self.experiment_var.get()
-        self.status_var.set(f"Updating plot for experiment: {experiment_id}")
+        self.status_var.set(f"Updating plot for: {experiment_id}")
         self.root.update_idletasks()  # Force UI update
         
+        # Clear the figure
+        self.fig.clear()
+        
         # Get the experiment time boundaries
-        start_time_ms, end_time_ms = self.get_experiment_time_boundaries(experiment_id)
+        if experiment_id == "All Experiments":
+            # Get the combined time boundaries for all experiments
+            start_time_ms, end_time_ms = self.get_all_experiments_time_boundaries()
+            
+            # Get the list of all experiment IDs
+            experiment_ids = list(self.data["benchmark_results"]["experiments"].keys())
+        else:
+            # Get boundaries for the single selected experiment
+            start_time_ms, end_time_ms = self.get_experiment_time_boundaries(experiment_id)
+            experiment_ids = [experiment_id]
         
         # Debug info - show time boundaries in human-readable format
         if start_time_ms is not None and end_time_ms is not None:
             start_time_eet = self._convert_to_eet(start_time_ms).strftime('%Y-%m-%d %H:%M:%S')
             end_time_eet = self._convert_to_eet(end_time_ms).strftime('%Y-%m-%d %H:%M:%S')
-            self.status_var.set(f"Experiment time bounds: {start_time_eet} to {end_time_eet} (EET)")
+            self.status_var.set(f"Time bounds: {start_time_eet} to {end_time_eet} (EET)")
             self.root.update_idletasks()
         
-        # Filter energy data to only include entries within the experiment time range
+        # Filter energy data to only include entries within the time range
         api_energy_data = self.data.get("api_server_energy", [])
         db_energy_data = self.data.get("db_server_energy", [])
         
         filtered_api_data = self._filter_energy_data_by_time(api_energy_data, start_time_ms, end_time_ms)
         filtered_db_data = self._filter_energy_data_by_time(db_energy_data, start_time_ms, end_time_ms)
-        
-        # Clear the figure
-        self.fig.clear()
         
         # Get the selected plot type and data source
         plot_type = self.plot_type_var.get()
@@ -369,7 +421,12 @@ class ExperimentVisualizer:
             # Configure the axis
             ax.set_xlabel('Time (EET)', fontsize=10)
             ax.set_ylabel('Energy Consumption', fontsize=10)
-            ax.set_title(f'Energy Consumption for Experiment: {experiment_id}', fontsize=12)
+            
+            # Set plot title based on selected experiments
+            if experiment_id == "All Experiments":
+                ax.set_title(f'Energy Consumption for All Experiments', fontsize=12)
+            else:
+                ax.set_title(f'Energy Consumption for Experiment: {experiment_id}', fontsize=12)
             
             # Format the time axis
             ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S', tz=self.display_timezone))
@@ -398,42 +455,113 @@ class ExperimentVisualizer:
                     
                     if not api_df.empty:
                         ax.bar(api_df['datetime'], api_df['consumption'], 
-                              width=bar_width, label='API Server (Java)', color='blue', alpha=0.7)
+                               width=bar_width, label='API Server (Java)', color='red', alpha=0.7)
                     
                     if not db_df.empty:
                         ax.bar(db_df['datetime'], db_df['consumption'], 
-                              width=bar_width, label='DB Server (Postgres)', color='green', alpha=0.7)
+                               width=bar_width, label='DB Server (Postgres)', color='blue', alpha=0.7)
                 
                 elif plot_type == "Scatter":
                     if not api_df.empty:
                         ax.scatter(api_df['datetime'], api_df['consumption'], 
-                                 label='API Server (Java)', color='blue', marker='o', s=30)
+                                 label='API Server (Java)', color='red', marker='o', s=30)
                     
                     if not db_df.empty:
                         ax.scatter(db_df['datetime'], db_df['consumption'], 
-                                 label='DB Server (Postgres)', color='green', marker='s', s=30)
+                                  label='DB Server (Postgres)', color='blue', marker='x', s=30)
                 
-                # Add legend
-                ax.legend(loc='best')
-                
-                # Adjust the layout to fit the plot
-                self.fig.tight_layout()
-                
-                # Show grid
+                # Add grid
                 ax.grid(True, linestyle='--', alpha=0.7)
                 
-                # Use scientific notation for y-axis if values are large
-                if not api_df.empty and api_df['consumption'].max() > 10000 or \
-                   not db_df.empty and db_df['consumption'].max() > 10000:
-                    ax.ticklabel_format(axis='y', style='sci', scilimits=(0,0))
+                # Add legend
+                if not api_df.empty or not db_df.empty:
+                    ax.legend(loc='best')
                 
-                # Update status with data summary
-                api_count = len(api_df) if not api_df.empty else 0
-                db_count = len(db_df) if not db_df.empty else 0
-                self.status_var.set(
-                    f"Plot updated: API data points: {api_count}, DB data points: {db_count}"
-                )
-        
+                # Add run boundaries visualization for each experiment
+                experiment_colors = ['lightgreen', 'lightblue', 'lightyellow', 'lightpink', 'lightcoral', 'lightskyblue']
+                
+                for idx, exp_id in enumerate(experiment_ids):
+                    run_boundaries = self._get_run_time_boundaries(exp_id)
+                    if run_boundaries:
+                        color_index = idx % len(experiment_colors)
+                        color = experiment_colors[color_index]
+                        
+                        for i, (run_num, run_start, run_end) in enumerate(run_boundaries):
+                            # Convert timestamps to datetime objects for plotting
+                            run_start_dt = self._convert_to_eet(run_start)
+                            run_end_dt = self._convert_to_eet(run_end)
+                            
+                            # Add shaded region for this run
+                            ax.axvspan(run_start_dt, run_end_dt, 
+                                      alpha=0.3, 
+                                      color=color, 
+                                      label=f'{exp_id} - Run {run_num}' if i == 0 else "")
+                            
+                            # Add vertical lines at run boundaries
+                            ax.axvline(x=run_start_dt, color='green', linestyle='--', alpha=0.7)
+                            ax.axvline(x=run_end_dt, color='red', linestyle='--', alpha=0.7)
+                            
+                            # Only add text labels if we're showing a single experiment
+                            # Otherwise, it gets too cluttered
+                            if experiment_id != "All Experiments":
+                                midpoint = run_start_dt + (run_end_dt - run_start_dt) / 2
+                                y_pos = ax.get_ylim()[1] * 0.95  # Position near the top
+                                ax.text(midpoint, y_pos, f'Run {run_num}', 
+                                       ha='center', va='top', 
+                                       bbox=dict(facecolor='white', alpha=0.8, boxstyle='round'))
+                
+                # Apply tight layout to maximize plot area
+                self.fig.tight_layout()
+                
+                # Add experiment boundary visualization when showing all experiments
+                if experiment_id == "All Experiments":
+                    chronology = self._get_experiment_chronology()
+                    
+                    if len(chronology) > 1:  # Only need to show boundaries if there's more than one experiment
+                        # Visualize the pause between experiments
+                        for i in range(len(chronology) - 1):
+                            current_exp_id, _, current_end = chronology[i]
+                            next_exp_id, next_start, _ = chronology[i + 1]
+                            
+                            # Only show pause if there is a gap between experiments
+                            if next_start > current_end:
+                                # Convert to datetime for plotting
+                                current_end_dt = self._convert_to_eet(current_end)
+                                next_start_dt = self._convert_to_eet(next_start)
+                                
+                                # Add a gray shaded region for the pause
+                                ax.axvspan(current_end_dt, next_start_dt, 
+                                          alpha=0.2, 
+                                          color='gray', 
+                                          hatch='///' if i % 2 == 0 else '\\\\\\',
+                                          label='Inter-experiment pause' if i == 0 else "")
+                                
+                                # Add vertical lines at experiment boundaries
+                                ax.axvline(x=current_end_dt, color='black', linestyle='-', alpha=0.7, linewidth=2)
+                                ax.axvline(x=next_start_dt, color='black', linestyle='-', alpha=0.7, linewidth=2)
+                                
+                                # Calculate the duration of the pause in seconds
+                                pause_duration = (next_start - current_end) / 1000  # Convert ms to seconds
+                                
+                                # Add a text label for the pause duration
+                                if pause_duration > 5:  # Only label if pause is significant (> 5 seconds)
+                                    midpoint = current_end_dt + (next_start_dt - current_end_dt) / 2
+                                    y_pos = ax.get_ylim()[1] * 0.75  # Position at 75% of the height
+                                    
+                                    # Format the duration
+                                    if pause_duration < 60:
+                                        duration_text = f"{pause_duration:.1f}s"
+                                    elif pause_duration < 3600:
+                                        duration_text = f"{pause_duration/60:.1f}min"
+                                    else:
+                                        duration_text = f"{pause_duration/3600:.1f}h"
+                                    
+                                    ax.text(midpoint, y_pos, 
+                                           f"Pause: {duration_text}\n{current_exp_id} → {next_exp_id}", 
+                                           ha='center', va='center', 
+                                           bbox=dict(facecolor='white', alpha=0.8, boxstyle='round'),
+                                           fontsize=9)
+                
         elif data_source == "Energy Comparative":
             # Create two subplots for comparative energy visualization
             # Process API server data (java processes)
@@ -593,109 +721,238 @@ class ExperimentVisualizer:
                 )
                 
         elif data_source == "Latency":
-            # Plot latency data if available for the selected experiment
-            experiment = self.data["benchmark_results"]["experiments"].get(experiment_id, {})
-            runs = experiment.get("runs", [])
-            
-            if not runs:
-                ax = self.fig.add_subplot(111)
-                ax.text(0.5, 0.5, "No latency data available for this experiment", 
-                       horizontalalignment='center', verticalalignment='center',
-                       transform=ax.transAxes, fontsize=14)
-            else:
+            # Handle the "All Experiments" case
+            if experiment_id == "All Experiments":
                 # Create a new subplot
                 ax = self.fig.add_subplot(111)
                 
                 # Configure the axis
                 ax.set_xlabel('Time (EET)', fontsize=10)
                 ax.set_ylabel('Latency (ms)', fontsize=10)
-                ax.set_title(f'Request Latency for Experiment: {experiment_id}', fontsize=12)
+                ax.set_title(f'Request Latency for All Experiments', fontsize=12)
                 
                 # Format the time axis
                 ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S', tz=self.display_timezone))
                 ax.tick_params(axis='x', rotation=45)
                 
-                # Collect latency data from all runs
-                latency_data = []
-                for run in runs:
-                    if "latencies" in run:
-                        for entry in run["latencies"]:
-                            if "latency_ns" in entry and "timestamp" in entry:
-                                timestamp_ms = entry["timestamp"]
-                                latency_ms = entry["latency_ns"] / 1_000_000  # Convert ns to ms
-                                dt = self._convert_to_eet(timestamp_ms)
-                                latency_data.append((dt, latency_ms))
+                # Plot latency data for each experiment with different colors
+                experiment_colors = ['purple', 'green', 'orange', 'brown', 'magenta', 'cyan']
+                has_data = False
                 
-                if not latency_data:
-                    ax.text(0.5, 0.5, "No detailed latency data available", 
+                for idx, exp_id in enumerate(experiment_ids):
+                    experiment = self.data["benchmark_results"]["experiments"].get(exp_id, {})
+                    runs = experiment.get("runs", [])
+                    
+                    # Collect latency data from all runs of this experiment
+                    latency_data = []
+                    for run in runs:
+                        if "latencies" in run:
+                            for entry in run["latencies"]:
+                                if "latency_ns" in entry and "timestamp" in entry:
+                                    timestamp_ms = entry["timestamp"]
+                                    latency_ms = entry["latency_ns"] / 1_000_000  # Convert ns to ms
+                                    dt = self._convert_to_eet(timestamp_ms)
+                                    latency_data.append((dt, latency_ms))
+                    
+                    if latency_data:
+                        has_data = True
+                        # Convert to DataFrame for easier plotting
+                        latency_df = pd.DataFrame(latency_data, columns=['datetime', 'latency'])
+                        
+                        # Plot based on plot type with experiment-specific color
+                        color = experiment_colors[idx % len(experiment_colors)]
+                        
+                        if plot_type == "Line":
+                            ax.plot(latency_df['datetime'], latency_df['latency'], 
+                                   label=f'{exp_id}', color=color, linewidth=2, marker=None, alpha=0.7)
+                        elif plot_type == "Scatter":
+                            ax.scatter(latency_df['datetime'], latency_df['latency'], 
+                                     label=f'{exp_id}', color=color, marker='o', s=30, alpha=0.7)
+                        elif plot_type == "Bar":
+                            bar_width = 0.0002  # Adjust as needed
+                            ax.bar(latency_df['datetime'], latency_df['latency'], 
+                                  width=bar_width, label=f'{exp_id}', color=color, alpha=0.7)
+                
+                if not has_data:
+                    ax.text(0.5, 0.5, "No latency data available", 
                            horizontalalignment='center', verticalalignment='center',
                            transform=ax.transAxes, fontsize=14)
                 else:
-                    # Convert to DataFrame for easier plotting
-                    latency_df = pd.DataFrame(latency_data, columns=['datetime', 'latency'])
-                    
-                    # Plot based on plot type
-                    if plot_type == "Line":
-                        ax.plot(latency_df['datetime'], latency_df['latency'], 
-                               color='purple', linewidth=2, marker=None, alpha=0.7)
-                    elif plot_type == "Scatter":
-                        ax.scatter(latency_df['datetime'], latency_df['latency'], 
-                                 color='purple', marker='o', s=30, alpha=0.7)
-                    elif plot_type == "Bar":
-                        bar_width = 0.0002  # Adjust as needed
-                        ax.bar(latency_df['datetime'], latency_df['latency'], 
-                              width=bar_width, color='purple', alpha=0.7)
-                    
                     # Add grid
                     ax.grid(True, linestyle='--', alpha=0.7)
                     
-                    # Update status
-                    self.status_var.set(f"Plotted {len(latency_data)} latency data points for experiment: {experiment_id}")
-        
-        elif data_source == "Throughput":
-            # For throughput, we'll create a simple bar chart showing throughput per run
-            experiment = self.data["benchmark_results"]["experiments"].get(experiment_id, {})
-            runs = experiment.get("runs", [])
-            
-            if not runs:
-                ax = self.fig.add_subplot(111)
-                ax.text(0.5, 0.5, "No throughput data available for this experiment", 
-                       horizontalalignment='center', verticalalignment='center',
-                       transform=ax.transAxes, fontsize=14)
+                    # Add legend for the experiments
+                    ax.legend(loc='best')
+                    
+                    # Add run boundaries visualization for each experiment
+                    experiment_colors = ['lightgreen', 'lightblue', 'lightyellow', 'lightpink', 'lightcoral', 'lightskyblue']
+                    
+                    for idx, exp_id in enumerate(experiment_ids):
+                        run_boundaries = self._get_run_time_boundaries(exp_id)
+                        if run_boundaries:
+                            color_index = idx % len(experiment_colors)
+                            color = experiment_colors[color_index]
+                            
+                            for i, (run_num, run_start, run_end) in enumerate(run_boundaries):
+                                # Convert timestamps to datetime objects for plotting
+                                run_start_dt = self._convert_to_eet(run_start)
+                                run_end_dt = self._convert_to_eet(run_end)
+                                
+                                # Add shaded region for this run
+                                ax.axvspan(run_start_dt, run_end_dt, 
+                                          alpha=0.15,  # Lower alpha for multiple experiments
+                                          color=color, 
+                                          label="" if i > 0 else f'{exp_id} runs')
+                                
+                                # Add vertical lines at run boundaries (less visible)
+                                ax.axvline(x=run_start_dt, color='green', linestyle='--', alpha=0.3)
+                                ax.axvline(x=run_end_dt, color='red', linestyle='--', alpha=0.3)
+                    
+                    # Apply tight layout to maximize plot area
+                    self.fig.tight_layout()
+                    
+                    # Add experiment boundary visualization when showing all experiments
+                    chronology = self._get_experiment_chronology()
+                    
+                    if len(chronology) > 1:  # Only need to show boundaries if there's more than one experiment
+                        # Visualize the pause between experiments
+                        for i in range(len(chronology) - 1):
+                            current_exp_id, _, current_end = chronology[i]
+                            next_exp_id, next_start, _ = chronology[i + 1]
+                            
+                            # Only show pause if there is a gap between experiments
+                            if next_start > current_end:
+                                # Convert to datetime for plotting
+                                current_end_dt = self._convert_to_eet(current_end)
+                                next_start_dt = self._convert_to_eet(next_start)
+                                
+                                # Add a gray shaded region for the pause
+                                ax.axvspan(current_end_dt, next_start_dt, 
+                                          alpha=0.2, 
+                                          color='gray', 
+                                          hatch='///' if i % 2 == 0 else '\\\\\\',
+                                          label='Inter-experiment pause' if i == 0 else "")
+                                
+                                # Add vertical lines at experiment boundaries
+                                ax.axvline(x=current_end_dt, color='black', linestyle='-', alpha=0.7, linewidth=2)
+                                ax.axvline(x=next_start_dt, color='black', linestyle='-', alpha=0.7, linewidth=2)
+                                
+                                # Calculate the duration of the pause in seconds
+                                pause_duration = (next_start - current_end) / 1000  # Convert ms to seconds
+                                
+                                # Add a text label for the pause duration
+                                if pause_duration > 5:  # Only label if pause is significant (> 5 seconds)
+                                    midpoint = current_end_dt + (next_start_dt - current_end_dt) / 2
+                                    y_pos = ax.get_ylim()[1] * 0.75  # Position at 75% of the height
+                                    
+                                    # Format the duration
+                                    if pause_duration < 60:
+                                        duration_text = f"{pause_duration:.1f}s"
+                                    elif pause_duration < 3600:
+                                        duration_text = f"{pause_duration/60:.1f}min"
+                                    else:
+                                        duration_text = f"{pause_duration/3600:.1f}h"
+                                    
+                                    ax.text(midpoint, y_pos, 
+                                           f"Pause: {duration_text}\n{current_exp_id} → {next_exp_id}", 
+                                           ha='center', va='center', 
+                                           bbox=dict(facecolor='white', alpha=0.8, boxstyle='round'),
+                                           fontsize=9)
             else:
-                # Create a new subplot
-                ax = self.fig.add_subplot(111)
+                # Single experiment latency view - use existing code
+                experiment = self.data["benchmark_results"]["experiments"].get(experiment_id, {})
+                runs = experiment.get("runs", [])
                 
-                # Configure the axis
-                ax.set_xlabel('Run', fontsize=10)
-                ax.set_ylabel('Throughput (req/s)', fontsize=10)
-                ax.set_title(f'Throughput for Experiment: {experiment_id}', fontsize=12)
-                
-                # Collect throughput data
-                run_labels = []
-                throughput_values = []
-                
-                for i, run in enumerate(runs):
-                    if "throughput" in run:
-                        run_labels.append(f"Run {i+1}")
-                        throughput_values.append(run["throughput"])
-                
-                if not throughput_values:
-                    ax.text(0.5, 0.5, "No throughput data available", 
+                if not runs:
+                    ax = self.fig.add_subplot(111)
+                    ax.text(0.5, 0.5, "No latency data available for this experiment", 
                            horizontalalignment='center', verticalalignment='center',
                            transform=ax.transAxes, fontsize=14)
                 else:
-                    # Plot bar chart for throughput
-                    ax.bar(run_labels, throughput_values, color='orange')
+                    # Create a new subplot
+                    ax = self.fig.add_subplot(111)
                     
-                    # Add value labels on top of bars
-                    for i, v in enumerate(throughput_values):
-                        ax.text(i, v + 0.5, f"{v:.2f}", ha='center')
+                    # Configure the axis
+                    ax.set_xlabel('Time (EET)', fontsize=10)
+                    ax.set_ylabel('Latency (ms)', fontsize=10)
+                    ax.set_title(f'Request Latency for Experiment: {experiment_id}', fontsize=12)
                     
-                    # Update status
-                    self.status_var.set(f"Plotted throughput for {len(throughput_values)} runs of experiment: {experiment_id}")
+                    # Format the time axis
+                    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S', tz=self.display_timezone))
+                    ax.tick_params(axis='x', rotation=45)
+                    
+                    # Collect latency data from all runs
+                    latency_data = []
+                    for run in runs:
+                        if "latencies" in run:
+                            for entry in run["latencies"]:
+                                if "latency_ns" in entry and "timestamp" in entry:
+                                    timestamp_ms = entry["timestamp"]
+                                    latency_ms = entry["latency_ns"] / 1_000_000  # Convert ns to ms
+                                    dt = self._convert_to_eet(timestamp_ms)
+                                    latency_data.append((dt, latency_ms))
+                    
+                    if not latency_data:
+                        ax.text(0.5, 0.5, "No detailed latency data available", 
+                               horizontalalignment='center', verticalalignment='center',
+                               transform=ax.transAxes, fontsize=14)
+                    else:
+                        # Convert to DataFrame for easier plotting
+                        latency_df = pd.DataFrame(latency_data, columns=['datetime', 'latency'])
+                        
+                        # Plot based on plot type
+                        if plot_type == "Line":
+                            ax.plot(latency_df['datetime'], latency_df['latency'], 
+                                   color='purple', linewidth=2, marker=None, alpha=0.7)
+                        elif plot_type == "Scatter":
+                            ax.scatter(latency_df['datetime'], latency_df['latency'], 
+                                     color='purple', marker='o', s=30, alpha=0.7)
+                        elif plot_type == "Bar":
+                            bar_width = 0.0002  # Adjust as needed
+                            ax.bar(latency_df['datetime'], latency_df['latency'], 
+                                  width=bar_width, color='purple', alpha=0.7)
+                        
+                        # Add grid
+                        ax.grid(True, linestyle='--', alpha=0.7)
+                        
+                        # Add run boundaries visualization
+                        if run_boundaries := self._get_run_time_boundaries(experiment_id):
+                            # Define colors for alternating run shading
+                            run_colors = ['lightgreen', 'lightblue']
+                            
+                            for i, (run_num, run_start, run_end) in enumerate(run_boundaries):
+                                # Convert timestamps to datetime objects for plotting
+                                run_start_dt = self._convert_to_eet(run_start)
+                                run_end_dt = self._convert_to_eet(run_end)
+                                
+                                # Add shaded region for this run
+                                ax.axvspan(run_start_dt, run_end_dt, 
+                                          alpha=0.3, 
+                                          color=run_colors[i % len(run_colors)], 
+                                          label=f'Run {run_num}' if i == 0 else "")
+                                
+                                # Add vertical lines at run boundaries
+                                ax.axvline(x=run_start_dt, color='green', linestyle='--', alpha=0.7)
+                                ax.axvline(x=run_end_dt, color='red', linestyle='--', alpha=0.7)
+                                
+                                # Add text label for the run
+                                midpoint = run_start_dt + (run_end_dt - run_start_dt) / 2
+                                y_pos = ax.get_ylim()[1] * 0.95  # Position near the top
+                                ax.text(midpoint, y_pos, f'Run {run_num}', 
+                                       ha='center', va='top', 
+                                       bbox=dict(facecolor='white', alpha=0.8, boxstyle='round'))
+                        
+                        # Apply tight layout to maximize plot area
+                        self.fig.tight_layout()
         
-        # Draw the plot
+        elif data_source == "Throughput":
+            # Placeholder for throughput visualization
+            ax = self.fig.add_subplot(111)
+            ax.text(0.5, 0.5, "Throughput visualization coming soon", 
+                   horizontalalignment='center', verticalalignment='center',
+                   transform=ax.transAxes, fontsize=14)
+        
+        # Redraw the canvas with the new plot
         self.canvas.draw()
     
     def force_plot_update(self):
@@ -710,6 +967,7 @@ class ExperimentVisualizer:
     def get_experiment_time_boundaries(self, experiment_id):
         """
         Extract time boundaries for the selected experiment.
+        Uses the start timestamp of the first run and end timestamp of the last run.
         Returns: (start_time_ms, end_time_ms) in milliseconds since epoch, or None if not available
         """
         if not self.data or not experiment_id:
@@ -720,32 +978,41 @@ class ExperimentVisualizer:
             
             if not experiment or "runs" not in experiment or not experiment["runs"]:
                 return None, None
+            
+            runs = experiment["runs"]
+            if not runs:
+                return None, None
                 
-            # Get the earliest start timestamp and latest end timestamp across all runs
-            start_timestamps = []
-            end_timestamps = []
+            # Get the start timestamp from the first run
+            first_run = runs[0]
+            start_time_ms = first_run.get("start_timestamp")
             
-            for run in experiment["runs"]:
-                if "start_timestamp" in run:
-                    start_timestamps.append(run["start_timestamp"])
-                if "end_timestamp" in run:
-                    end_timestamps.append(run["end_timestamp"])
-                # If only start_timestamp but no end_timestamp, estimate using elapsed_time if available
-                elif "start_timestamp" in run and "elapsed_time_ms" in run:
-                    end_timestamps.append(run["start_timestamp"] + run["elapsed_time_ms"])
-                    
-            # If no explicit timestamps, try to use timestamp field which might be the end time
-            if not start_timestamps and not end_timestamps:
-                for run in experiment["runs"]:
-                    if "timestamp" in run:
-                        # This might be the end timestamp
-                        end_timestamps.append(run["timestamp"])
-                        # Estimate start time using elapsed_time if available
-                        if "elapsed_time_ms" in run:
-                            start_timestamps.append(run["timestamp"] - run["elapsed_time_ms"])
+            # Get the end timestamp from the last run
+            last_run = runs[-1]
+            end_time_ms = last_run.get("end_timestamp")
             
-            if not start_timestamps and not end_timestamps:
-                # If still no timestamps, we can't determine time boundaries - use the full range from energy data
+            # If end_timestamp is not available, try to calculate it from start_timestamp + elapsed_time_ms
+            if end_time_ms is None and "start_timestamp" in last_run and "elapsed_time_ms" in last_run:
+                end_time_ms = last_run["start_timestamp"] + last_run["elapsed_time_ms"]
+            
+            # If we still don't have valid timestamps, fall back to timestamp field
+            if start_time_ms is None and "timestamp" in first_run:
+                # If timestamp exists, assume it's the end time and try to calculate start time
+                if "elapsed_time_ms" in first_run:
+                    start_time_ms = first_run["timestamp"] - first_run["elapsed_time_ms"]
+                else:
+                    # No way to determine start time, just use timestamp
+                    start_time_ms = first_run["timestamp"]
+            
+            if end_time_ms is None and "timestamp" in last_run:
+                end_time_ms = last_run["timestamp"]
+            
+            # If we have valid timestamps, return them without any buffer
+            if start_time_ms is not None and end_time_ms is not None:
+                return start_time_ms, end_time_ms
+            
+            # If we can't determine the time boundaries, fall back to using energy data
+            if start_time_ms is None or end_time_ms is None:
                 self.status_var.set(f"No explicit time boundaries found for {experiment_id}, using full energy data range.")
                 
                 # Look for any timestamps in the energy data
@@ -761,25 +1028,6 @@ class ExperimentVisualizer:
                 if energy_timestamps:
                     # Use the full range of energy data
                     return min(energy_timestamps), max(energy_timestamps)
-                
-                return None, None
-                
-            # Take the min start time and max end time
-            start_time_ms = min(start_timestamps) if start_timestamps else None
-            end_time_ms = max(end_timestamps) if end_timestamps else None
-            
-            if start_time_ms is None and end_time_ms is not None:
-                # If only have end time, estimate start time (30 seconds before)
-                start_time_ms = end_time_ms - 30000
-            elif end_time_ms is None and start_time_ms is not None:
-                # If only have start time, estimate end time (30 seconds after)
-                end_time_ms = start_time_ms + 30000
-            
-            # Add buffer time before and after (20% of experiment duration or at least 30 seconds)
-            duration = end_time_ms - start_time_ms
-            buffer = max(duration * 0.2, 30000)  # At least 30 seconds buffer
-            
-            return start_time_ms - buffer, end_time_ms + buffer
         
         return None, None
     
@@ -841,32 +1089,15 @@ class ExperimentVisualizer:
             )
             return energy_data  # Return all data if no overlap
         
-        # Use a VERY wide range for filtering to ensure we don't miss relevant data
-        # This is especially important if timestamps might have slight mismatches
-        # At most, limit to 1 hour before and after (but only if we have a lot of data)
-        buffer_sec = min(3600, max(600, (end_time_sec - start_time_sec) * 2))
-        expanded_start = max(min_timestamp, start_time_sec - buffer_sec)
-        expanded_end = min(max_timestamp, end_time_sec + buffer_sec)
-        
-        # Convert to human-readable format
-        expanded_start_str = self._convert_to_eet(expanded_start * 1000, is_milliseconds=True).strftime('%Y-%m-%d %H:%M:%S')
-        expanded_end_str = self._convert_to_eet(expanded_end * 1000, is_milliseconds=True).strftime('%Y-%m-%d %H:%M:%S')
-        
-        # Print the expanded range
-        self.status_var.set(
-            f"Using expanded time range: {expanded_start_str} to {expanded_end_str} "
-            f"(buffer: {buffer_sec:.2f}s)"
-        )
-        
-        # Filter data to only include entries within the expanded time range
+        # Filter data to only include entries within the exact experiment time range
         filtered_data = [
             entry for entry in energy_data 
-            if entry.get("timestamp", 0) >= expanded_start and entry.get("timestamp", 0) <= expanded_end
+            if entry.get("timestamp", 0) >= start_time_sec and entry.get("timestamp", 0) <= end_time_sec
         ]
         
         if not filtered_data:
             self.status_var.set(
-                f"WARNING: No energy data found after filtering. "
+                f"WARNING: No energy data found within the exact experiment timeframe. "
                 f"Showing ALL data instead."
             )
             return energy_data
@@ -962,6 +1193,113 @@ class ExperimentVisualizer:
         eet_dt = utc_dt.astimezone(self.display_timezone)
         
         return eet_dt
+
+    def _get_run_time_boundaries(self, experiment_id):
+        """
+        Extract the time boundaries for each run in the experiment.
+        
+        Args:
+            experiment_id: ID of the experiment
+            
+        Returns:
+            List of tuples (run_number, start_time_ms, end_time_ms)
+        """
+        if not self.data or "benchmark_results" not in self.data or "experiments" not in self.data["benchmark_results"]:
+            return []
+            
+        experiment = self.data["benchmark_results"]["experiments"].get(experiment_id, {})
+        if not experiment or "runs" not in experiment or not experiment["runs"]:
+            return []
+            
+        run_boundaries = []
+        for i, run in enumerate(experiment["runs"]):
+            # Get start time
+            start_time_ms = run.get("start_timestamp")
+            
+            # Get end time (either directly or calculated from start + elapsed)
+            end_time_ms = run.get("end_timestamp")
+            if end_time_ms is None and "start_timestamp" in run and "elapsed_time_ms" in run:
+                end_time_ms = run["start_timestamp"] + run["elapsed_time_ms"]
+            elif end_time_ms is None and "timestamp" in run:
+                # If only timestamp exists (likely the end time), try to estimate start
+                end_time_ms = run["timestamp"]
+                if "elapsed_time_ms" in run:
+                    start_time_ms = end_time_ms - run["elapsed_time_ms"]
+            
+            # Only include if we have both start and end times
+            if start_time_ms is not None and end_time_ms is not None:
+                run_boundaries.append((i+1, start_time_ms, end_time_ms))
+        
+        return run_boundaries
+
+    def get_all_experiments_time_boundaries(self):
+        """
+        Get the time boundaries that encompass all experiments in the data.
+        Returns: (start_time_ms, end_time_ms) in milliseconds since epoch, or None if not available
+        """
+        if not self.data or "benchmark_results" not in self.data or "experiments" not in self.data["benchmark_results"]:
+            return None, None
+            
+        experiments = self.data["benchmark_results"]["experiments"]
+        if not experiments:
+            return None, None
+            
+        all_start_times = []
+        all_end_times = []
+        
+        # Collect all timestamps from all experiments
+        for experiment_id, experiment_data in experiments.items():
+            start_time, end_time = self.get_experiment_time_boundaries(experiment_id)
+            if start_time is not None:
+                all_start_times.append(start_time)
+            if end_time is not None:
+                all_end_times.append(end_time)
+        
+        # Return the broadest range
+        if all_start_times and all_end_times:
+            return min(all_start_times), max(all_end_times)
+        
+        # Fallback to energy data if no experiment timestamps are available
+        api_energy_data = self.data.get("api_server_energy", [])
+        db_energy_data = self.data.get("db_server_energy", [])
+        
+        energy_timestamps = []
+        for entry in api_energy_data + db_energy_data:
+            if "timestamp" in entry:
+                # Convert seconds to milliseconds
+                energy_timestamps.append(entry.get("timestamp", 0) * 1000)
+        
+        if energy_timestamps:
+            # Use the full range of energy data
+            return min(energy_timestamps), max(energy_timestamps)
+            
+        return None, None
+
+    def _get_experiment_chronology(self):
+        """
+        Get the chronological ordering of experiments and identify the pauses between them.
+        
+        Returns:
+            List of tuples (experiment_id, start_time_ms, end_time_ms) sorted by start time
+        """
+        if not self.data or "benchmark_results" not in self.data or "experiments" not in self.data["benchmark_results"]:
+            return []
+            
+        experiments = self.data["benchmark_results"]["experiments"]
+        if not experiments:
+            return []
+        
+        # Collect time boundaries for each experiment
+        experiment_times = []
+        for experiment_id, experiment_data in experiments.items():
+            start_time, end_time = self.get_experiment_time_boundaries(experiment_id)
+            if start_time is not None and end_time is not None:
+                experiment_times.append((experiment_id, start_time, end_time))
+        
+        # Sort experiments by start time
+        experiment_times.sort(key=lambda x: x[1])
+        
+        return experiment_times
 
 if __name__ == "__main__":
     root = tk.Tk()
