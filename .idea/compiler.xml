@@ -8,11 +8,19 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="api-http" />
+        <module name="benchbase" />
+      </profile>
+      <profile name="Annotation profile for core" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.30/lombok-1.18.30.jar" />
+        </processorPath>
         <module name="core" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
-      <module name="benchbase" target="21" />
       <module name="demo" target="17" />
     </bytecodeTargetLevel>
   </component>

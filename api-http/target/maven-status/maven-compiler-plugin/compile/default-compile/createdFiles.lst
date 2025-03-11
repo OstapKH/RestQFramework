@@ -10,6 +10,7 @@ com/restq/api_http/Repositories/OrderRepository.class
 com/restq/api_http/Benchmark/ApiBenchmark$ProbabilityConfig.class
 com/restq/api_http/Benchmark/BenchmarkResult.class
 com/restq/api_http/DTO/DiscountedRevenueReport.class
+com/restq/api_http/Benchmark/ApiBenchmark$TimestampedLatency.class
 com/restq/api_http/Repositories/PartSuppRepository.class
 com/restq/api_http/DTO/PartSupplierReport.class
 com/restq/api_http/Repositories/SupplierRepository.class
@@ -28,6 +29,8 @@ com/restq/api_http/DTO/OrderRevenueInfo.class
 com/restq/api_http/Benchmark/ApiBenchmark$EndpointConfig.class
 com/restq/api_http/Repositories/CustomerRepository.class
 com/restq/api_http/DTO/CustomerDistributionReport.class
+com/restq/utils/JsonFixer.class
+com/restq/utils/JsonCombiner.class
 com/restq/api_http/Benchmark/ApiBenchmark$ClientTask.class
 com/restq/api_http/Controllers/Controller.class
 com/restq/api_http/DTO/ShippingModeReport.class

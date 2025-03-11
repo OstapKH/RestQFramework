@@ -11,6 +11,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.dates import DateFormatter
 import matplotlib.dates as mdates
+import matplotlib.ticker as mticker
 
 class ExperimentVisualizer:
     def __init__(self, root):
@@ -605,11 +606,10 @@ class ExperimentVisualizer:
                     elif plot_type == "Bar":
                         bar_width = 0.0002  # Adjust as needed
                         ax1.bar(api_df['datetime'], api_df['consumption'], 
-                               width=bar_width, color='blue', alpha=0.7)
+                               width=bar_width, color='blue', alph=0.7)
                 else:  # Accumulated mode
                     # Add a cumulative sum column for accumulated energy over time
                     api_df['accumulated'] = api_df['consumption'].cumsum()
-                    
                     if plot_type == "Line":
                         ax1.plot(api_df['datetime'], api_df['accumulated'], 
                                 color='red', linewidth=2, marker=None, label='Accumulated')
@@ -946,11 +946,220 @@ class ExperimentVisualizer:
                         self.fig.tight_layout()
         
         elif data_source == "Throughput":
-            # Placeholder for throughput visualization
-            ax = self.fig.add_subplot(111)
-            ax.text(0.5, 0.5, "Throughput visualization coming soon", 
-                   horizontalalignment='center', verticalalignment='center',
-                   transform=ax.transAxes, fontsize=14)
+            # Handle the "All Experiments" case
+            if experiment_id == "All Experiments":
+                # Create a new subplot
+                ax = self.fig.add_subplot(111)
+                
+                # Configure the axis
+                ax.set_xlabel('Time (EET)', fontsize=10)
+                ax.set_ylabel('Throughput (requests/second)', fontsize=10)
+                ax.set_title(f'Request Throughput for All Experiments', fontsize=12)
+                
+                # Format the time axis
+                ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M:%S', tz=self.display_timezone))
+                ax.tick_params(axis='x', rotation=45)
+                
+                # Format y-axis to show more decimal places
+                ax.yaxis.set_major_formatter(plt.FormatStrFormatter('%.5f'))
+                
+                # Plot throughput data for each experiment with different colors
+                experiment_colors = ['purple', 'green', 'orange', 'brown', 'magenta', 'cyan']
+                has_data = False
+                
+                for idx, exp_id in enumerate(experiment_ids):
+                    experiment = self.data["benchmark_results"]["experiments"].get(exp_id, {})
+                    runs = experiment.get("runs", [])
+                    
+                    # Collect throughput data from all runs of this experiment
+                    throughput_data = []
+                    goodput_data = []
+                    for run in runs:
+                        if "throughput" in run and "start_timestamp" in run:
+                            # Use the start timestamp for the throughput point
+                            timestamp_ms = run["start_timestamp"]
+                            throughput = run["throughput"]
+                            dt = self._convert_to_eet(timestamp_ms)
+                            throughput_data.append((dt, throughput))
+                            
+                            # Also collect goodput if available
+                            if "goodput" in run:
+                                goodput = run["goodput"]
+                                goodput_data.append((dt, goodput))
+                    
+                    if throughput_data:
+                        has_data = True
+                        # Convert to DataFrame for easier plotting
+                        throughput_df = pd.DataFrame(throughput_data, columns=['datetime', 'throughput'])
+                        
+                        # Sort by datetime to ensure chronological order
+                        throughput_df = throughput_df.sort_values('datetime')
+                        
+                        # Plot with appropriate color and label
+                        color = experiment_colors[idx % len(experiment_colors)]
+                        if plot_type == "Line":
+                            ax.plot(throughput_df['datetime'], throughput_df['throughput'], 
+                                   marker='o', linestyle='-', color=color, 
+                                   label=f"{exp_id} (Total)", linewidth=2)
+                            
+                            # Plot goodput if available
+                            if goodput_data:
+                                goodput_df = pd.DataFrame(goodput_data, columns=['datetime', 'goodput'])
+                                goodput_df = goodput_df.sort_values('datetime')
+                                ax.plot(goodput_df['datetime'], goodput_df['goodput'], 
+                                       marker='x', linestyle='--', color=color, 
+                                       label=f"{exp_id} (Successful)", linewidth=1.5, alpha=0.7)
+                        elif plot_type == "Bar":
+                            bar_width = 0.0002  # Adjust as needed
+                            ax.bar(throughput_df['datetime'], throughput_df['throughput'], 
+                                  width=bar_width, color=color, alpha=0.7, label=f"{exp_id} (Total)")
+                            
+                            # Plot goodput as bars if available
+                            if goodput_data:
+                                goodput_df = pd.DataFrame(goodput_data, columns=['datetime', 'goodput'])
+                                goodput_df = goodput_df.sort_values('datetime')
+                                # Use a lighter shade of the same color for goodput with slight offset
+                                ax.bar(goodput_df['datetime'], goodput_df['goodput'], 
+                                      width=bar_width*0.8, color=color, alpha=0.4, 
+                                      label=f"{exp_id} (Successful)")
+                        elif plot_type == "Scatter":
+                            ax.scatter(throughput_df['datetime'], throughput_df['throughput'], 
+                                      color=color, marker='o', s=50, label=f"{exp_id} (Total)")
+                            
+                            # Plot goodput if available
+                            if goodput_data:
+                                goodput_df = pd.DataFrame(goodput_data, columns=['datetime', 'goodput'])
+                                goodput_df = goodput_df.sort_values('datetime')
+                                ax.scatter(goodput_df['datetime'], goodput_df['goodput'], 
+                                         color=color, marker='x', s=40, alpha=0.7,
+                                         label=f"{exp_id} (Successful)")
+                
+                if has_data:
+                    # Add a legend
+                    ax.legend(loc='best', fontsize=8)
+                    
+                    # Set reasonable y-axis limits
+                    if ax.get_ylim()[0] < 0:
+                        ax.set_ylim(bottom=0)  # Start from 0 for throughput
+                    
+                    # Add data labels for Line and Scatter plots
+                    if plot_type in ["Line", "Scatter"]:
+                        for idx, exp_id in enumerate(experiment_ids):
+                            experiment = self.data["benchmark_results"]["experiments"].get(exp_id, {})
+                            runs = experiment.get("runs", [])
+                            
+                            # Process throughput data
+                            throughput_data = []
+                            for run in runs:
+                                if "throughput" in run and "start_timestamp" in run:
+                                    timestamp_ms = run["start_timestamp"]
+                                    throughput = run["throughput"]
+                                    dt = self._convert_to_eet(timestamp_ms)
+                                    throughput_data.append((dt, throughput))
+                            
+                            if throughput_data:
+                                throughput_df = pd.DataFrame(throughput_data, columns=['datetime', 'throughput'])
+                                throughput_df = throughput_df.sort_values('datetime')
+                                
+                                # Add data labels
+                                for i, row in throughput_df.iterrows():
+                                    ax.text(row['datetime'], row['throughput'], f"{row['throughput']:.5f}", 
+                                           ha='center', va='bottom', fontsize=7)
+                else:
+                    # No data available message
+                    ax.text(0.5, 0.5, "No throughput data available for the selected experiments", 
+                           horizontalalignment='center', verticalalignment='center',
+                           transform=ax.transAxes, fontsize=10)
+            else:
+                # Single experiment view
+                experiment = self.data["benchmark_results"]["experiments"].get(experiment_id, {})
+                runs = experiment.get("runs", [])
+                
+                # Create a new subplot
+                ax = self.fig.add_subplot(111)
+                
+                # Configure the axis
+                ax.set_xlabel('Run Number', fontsize=10)
+                ax.set_ylabel('Throughput (requests/second)', fontsize=10)
+                ax.set_title(f'Request Throughput for {experiment_id}', fontsize=12)
+                
+                # Format y-axis to show more decimal places
+                ax.yaxis.set_major_formatter(plt.FormatStrFormatter('%.5f'))
+                
+                # Collect throughput data for this experiment
+                throughput_data = []
+                goodput_data = []
+                for i, run in enumerate(runs):
+                    run_number = i + 1
+                    if "throughput" in run:
+                        throughput = run["throughput"]
+                        throughput_data.append((run_number, throughput))
+                    if "goodput" in run:
+                        goodput = run["goodput"]
+                        goodput_data.append((run_number, goodput))
+                
+                if throughput_data or goodput_data:
+                    # Plot throughput data
+                    if throughput_data:
+                        # Convert to DataFrame for easier plotting
+                        throughput_df = pd.DataFrame(throughput_data, columns=['run', 'throughput'])
+                        
+                        # Plot with appropriate style
+                        if plot_type == "Line":
+                            ax.plot(throughput_df['run'], throughput_df['throughput'], 
+                                  marker='o', linestyle='-', color='blue', 
+                                  linewidth=2, label='Total Throughput')
+                        elif plot_type == "Bar":
+                            bar_width = 0.35
+                            ax.bar(throughput_df['run'] - bar_width/2, throughput_df['throughput'], 
+                                  width=bar_width, color='blue', alpha=0.7, label='Total Throughput')
+                        elif plot_type == "Scatter":
+                            ax.scatter(throughput_df['run'], throughput_df['throughput'], 
+                                     color='blue', marker='o', s=50, label='Total Throughput')
+                    
+                    # Plot goodput data
+                    if goodput_data:
+                        # Convert to DataFrame for easier plotting
+                        goodput_df = pd.DataFrame(goodput_data, columns=['run', 'goodput'])
+                        
+                        # Plot with appropriate style
+                        if plot_type == "Line":
+                            ax.plot(goodput_df['run'], goodput_df['goodput'], 
+                                  marker='x', linestyle='--', color='green', 
+                                  linewidth=2, label='Successful Throughput')
+                        elif plot_type == "Bar":
+                            bar_width = 0.35
+                            ax.bar(goodput_df['run'] + bar_width/2, goodput_df['goodput'], 
+                                  width=bar_width, color='green', alpha=0.7, label='Successful Throughput')
+                        elif plot_type == "Scatter":
+                            ax.scatter(goodput_df['run'], goodput_df['goodput'], 
+                                     color='green', marker='x', s=50, label='Successful Throughput')
+                    
+                    # Add legend
+                    ax.legend(loc='best')
+                    
+                    # Set x-axis to show integer run numbers
+                    ax.xaxis.set_major_locator(mticker.MaxNLocator(integer=True))
+                    
+                    # Set reasonable y-axis limits
+                    if ax.get_ylim()[0] < 0:
+                        ax.set_ylim(bottom=0)  # Start from 0 for throughput
+                    
+                    # Add data labels
+                    if throughput_data and plot_type != "Bar":
+                        for i, row in throughput_df.iterrows():
+                            ax.text(row['run'], row['throughput'], f"{row['throughput']:.5f}", 
+                                   ha='center', va='bottom', fontsize=8)
+                    
+                    if goodput_data and plot_type != "Bar":
+                        for i, row in goodput_df.iterrows():
+                            ax.text(row['run'], row['goodput'], f"{row['goodput']:.5f}", 
+                                   ha='center', va='bottom', fontsize=8)
+                else:
+                    # No data available message
+                    ax.text(0.5, 0.5, "No throughput data available for this experiment", 
+                           horizontalalignment='center', verticalalignment='center',
+                           transform=ax.transAxes, fontsize=10)
         
         # Redraw the canvas with the new plot
         self.canvas.draw()

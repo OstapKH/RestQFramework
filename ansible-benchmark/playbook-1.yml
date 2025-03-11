@@ -1,0 +1,120 @@
+- name: Initialize grid 5000
+  hosts: grid5000
+  remote_user: oskilbaso
+  vars:
+    OS_image: ubuntu2204-x64-min
+  tasks:
+    - name: Go to the frontend of {{ grid_site }} then create a job
+      command: "oarsub -l host=3,walltime={{ grid_time }} -r 'now' -t deploy"
+      register: job_output
+
+    - name: Extract job ID
+      set_fact:
+        job_id: "{{ job_output.stdout | regex_search('OAR_JOB_ID=(\\d+)', '\\1') | first }}"
+
+    - name: Log job ID
+      debug:
+        msg: "Job ID: {{ job_id }}"
+
+    - name: Wait for reservation validation
+      pause:
+        minutes: 7
+
+    - name: Get job details
+      command: "oarstat -f -j {{ job_id }}"
+      register: job_details
+
+    - name: Extract assigned hostnames
+      set_fact:
+        reserved_nodes: "{{ (job_details.stdout | regex_search('assigned_hostnames = (.+)', '\\1')) | first | split('+') }}"
+
+    - name: Log reserved nodes
+      debug:
+        msg: "Reserved nodes: {{ reserved_nodes }}"
+
+    - name: Assign node names to variables
+      set_fact:
+        node1: "{{ reserved_nodes[0] }}"
+        node2: "{{ reserved_nodes[1] }}"
+        node3: "{{ reserved_nodes[2] }}"
+        cacheable: true
+
+    - name: Log node assignments
+      debug:
+        msg: "Node1: {{ node1 }}, Node2: {{ node2 }}, Node3: {{ node3 }}"
+
+    - name: Add nodes to in-memory inventory
+      add_host:
+        name: "{{ item }}"
+        ansible_host: "{{ lookup('vars', item) }}"
+        groups: reserved_nodes
+        node1: "{{ node1 }}"
+        node2: "{{ node2 }}"
+        node3: "{{ node3 }}"
+      loop:
+        - node1
+        - node2
+        - node3
+
+    - name: Deploy system on Node1
+      command: "kadeploy3 -m {{ node1 }} -e {{ OS_image }}"
+
+    - name: Deploy system on Node2
+      command: "kadeploy3 -m {{ node2 }} -e {{ OS_image }}"
+
+    - name: Deploy system on Node3
+      command: "kadeploy3 -m {{ node3 }} -e {{ OS_image }}"
+
+- name: Setup Node 1
+  hosts: node1
+  remote_user: root
+  tasks:
+    - name: Set installation directory for libraries
+      set_fact:
+        library_install_dir: /root/public
+
+    - name: Install podman-docker to {{ library_install_dir }}
+      apt:
+        name:
+          - podman-docker
+        state: present
+        install_recommends: no
+      environment:
+        DESTDIR: "{{ library_install_dir }}"
+
+    - name: Install docker.io to {{ library_install_dir }}
+      apt:
+        name:
+          - docker.io
+        state: present
+        install_recommends: no
+      environment:
+        DESTDIR: "{{ library_install_dir }}"
+
+- name: Setup Node 2
+  hosts: node2
+  remote_user: root
+  tasks:
+    - name: Set installation directory for libraries
+      set_fact:
+        library_install_dir: /root/public
+
+    - name: Install podman-docker to {{ library_install_dir }}
+      apt:
+        name:
+          - podman-docker
+        state: present
+        install_recommends: no
+      environment:
+        DESTDIR: "{{ library_install_dir }}"
+
+    - name: Install docker.io to {{ library_install_dir }}
+      apt:
+        name:
+          - docker.io
+        state: present
+        install_recommends: no
+      environment:
+        DESTDIR: "{{ library_install_dir }}"
+
+# Node 3 doesn't have docker installed in the original playbook, so we skip it

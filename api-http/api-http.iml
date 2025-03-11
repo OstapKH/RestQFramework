@@ -9,8 +9,4 @@
       </configuration>
     </facet>
   </component>
-  <component name="NewModuleRootManager">
-    <orderEntry type="inheritedJdk" />
-    <orderEntry type="sourceFolder" forTests="false" />
-  </component>
 </module>

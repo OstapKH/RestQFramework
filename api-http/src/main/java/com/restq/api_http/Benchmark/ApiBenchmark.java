@@ -19,11 +19,15 @@ import org.apache.hc.client5.http.classic.methods.HttpGet;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpResponse;
 import org.apache.hc.client5.http.impl.classic.CloseableHttpClient;
 import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManager;
 import org.apache.hc.core5.http.NoHttpResponseException;
 import org.apache.hc.core5.http.io.entity.EntityUtils;
 import org.apache.hc.core5.http.EntityDetails;
 import org.apache.hc.core5.http.HttpRequest;
 import org.apache.hc.core5.http.protocol.HttpContext;
+import org.apache.hc.core5.http.io.SocketConfig;
+import org.apache.hc.core5.util.TimeValue;
+import org.apache.hc.core5.util.Timeout;
 
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartUtils;
@@ -37,6 +41,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+
+import org.apache.hc.core5.http.message.BasicHeader;
 
 public class ApiBenchmark {
 
@@ -146,47 +152,54 @@ public class ApiBenchmark {
             List<Future<ClientTaskResult>> futures = new ArrayList<>();
             List<TimestampedLatency> allLatencies = new ArrayList<>();
 
-            // Create a queue for each thread
-            List<BlockingQueue<String>> queues = new ArrayList<>();
+            // Create a queue for each connection - each now has its own independent queue
+            List<BlockingQueue<String>> connectionQueues = new ArrayList<>();
             for (int i = 0; i < experiment.getConnections(); i++) {
-                queues.add(new LinkedBlockingQueue<>());
+                connectionQueues.add(new LinkedBlockingQueue<>());
             }
 
             long startTimestamp = System.currentTimeMillis();
             long endTimestamp = startTimestamp + experiment.getDuration() * 1000;
 
-            // Start producer thread to add requests to queues
-            Thread producerThread = new Thread(() -> {
-                try {
-                    while (System.currentTimeMillis() < endTimestamp) {
-                        long startTime = System.currentTimeMillis();
-                        String endpoint = chooseEndpoint(experiment.getProbabilitiesMap());
-
-                        for (BlockingQueue<String> queue : queues) {
+            // Create and start a producer thread for EACH connection/terminal
+            List<Thread> producerThreads = new ArrayList<>();
+            for (int i = 0; i < experiment.getConnections(); i++) {
+                final int connectionIndex = i;
+                Thread producerThread = new Thread(() -> {
+                    try {
+                        while (System.currentTimeMillis() < endTimestamp) {
+                            long startTime = System.currentTimeMillis();
+                            
+                            // Each producer adds the full requestsPerSecond to its own queue
                             for (int j = 0; j < experiment.getRequestsPerSecond(); j++) {
-                                queue.put(endpoint);
+                                String endpoint = chooseEndpoint(experiment.getProbabilitiesMap());
+                                connectionQueues.get(connectionIndex).put(endpoint);
+                            }
+
+                            long elapsedTime = System.currentTimeMillis() - startTime;
+                            if (elapsedTime < 1000) {
+                                Thread.sleep(1000 - elapsedTime);
+                            } else {
+                                logger.warn("Warning: Adding requests took longer than 1 second for connection {}", connectionIndex);
                             }
                         }
-
-                        long elapsedTime = System.currentTimeMillis() - startTime;
-                        if (elapsedTime < 1000) {
-                            Thread.sleep(1000 - elapsedTime);
-                        } else {
-                            logger.warn("Warning: Adding requests took longer than 1 second.");
-                        }
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
                     }
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            });
-            producerThread.start();
-
-            // Start client tasks
-            for (int i = 0; i < experiment.getConnections(); i++) {
-                futures.add(executor.submit(new ClientTask(experiment, queues.get(i), endTimestamp)));
+                });
+                producerThread.start();
+                producerThreads.add(producerThread);
             }
 
-            producerThread.join();
+            // Start a client task for each connection, now each with its own queue
+            for (int i = 0; i < experiment.getConnections(); i++) {
+                futures.add(executor.submit(new ClientTask(experiment, connectionQueues.get(i), endTimestamp)));
+            }
+
+            // Wait for all producer threads to finish
+            for (Thread producerThread : producerThreads) {
+                producerThread.join();
+            }
 
             int totalSuccessfulRequests = 0;
             for (Future<ClientTaskResult> future : futures) {
@@ -242,27 +255,31 @@ public class ApiBenchmark {
             this.endTimestamp = endTimestamp;
             this.threadName = Thread.currentThread().getName();
 
+            // Simple connection manager with default settings
+            PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager();
+            
+            // Use default client configuration
             this.httpClient = HttpClients.custom()
-                    .addRequestInterceptorFirst((HttpRequest request, EntityDetails entity, HttpContext context) -> {
-                        initialPortMap.computeIfAbsent(threadName, k -> 0);
-                    })
-                    .setConnectionReuseStrategy((request, response, context) -> true)
+                    .setConnectionManager(connectionManager)
                     .build();
         }
 
         @Override
         public ClientTaskResult call() {
-            // Change from List<Long> to List<TimestampedLatency>
             List<TimestampedLatency> latencies = new ArrayList<>();
             try {
-                while (!queue.isEmpty() || System.currentTimeMillis() < endTimestamp) {
-                    String endpoint = queue.poll(1, TimeUnit.SECONDS);
+                while (System.currentTimeMillis() < endTimestamp) {
+                    String endpoint = queue.poll(100, TimeUnit.MILLISECONDS);
                     if (endpoint != null) {
-                        // Capture request timestamp and latency
-                        TimestampedLatency result = sendRequest(endpoint);
-                        if (result.getLatency() >= 0) {
-                            latencies.add(result);
-                            successfulRequests++;
+                        try {
+                            HttpGet request = new HttpGet(BASE_URL + endpoint);
+                            TimestampedLatency result = sendRequest(request);
+                            if (result.getLatency() >= 0) {
+                                latencies.add(result);
+                                successfulRequests++;
+                            }
+                        } catch (Exception e) {
+                            logger.error("Error making request for endpoint: {}", endpoint, e);
                         }
                     }
                 }
@@ -279,27 +296,24 @@ public class ApiBenchmark {
             return new ClientTaskResult(latencies, successfulRequests);
         }
 
-        private TimestampedLatency sendRequest(String endpoint) {
-            long requestTimestamp = System.currentTimeMillis(); // Record when request was sent
+        private TimestampedLatency sendRequest(HttpGet request) {
+            long requestTimestamp = System.currentTimeMillis();
             long start = System.nanoTime();
-            HttpGet request = new HttpGet(BASE_URL + endpoint);
 
             try (CloseableHttpResponse response = httpClient.execute(request)) {
-                // Consume the response to free resources
                 EntityUtils.consume(response.getEntity());
-                // Return latency if successful
                 return new TimestampedLatency(requestTimestamp, System.nanoTime() - start);
             } catch (NoHttpResponseException e) {
                 logger.error("NoHttpResponseException: The server did not respond. Details:");
-                logger.error("Endpoint: {}", endpoint);
+                logger.error("Request: {}", request.toString());
                 e.printStackTrace();
             } catch (IOException e) {
-                logger.error("IOException occurred while sending request to: {}", endpoint);
+                logger.error("IOException occurred while sending request");
+                logger.error("Request: {}", request.toString());
                 logger.error("Message: {}", e.getMessage());
                 e.printStackTrace();
             }
 
-            // Indicate failure
             return new TimestampedLatency(requestTimestamp, -1);
         }
     }
