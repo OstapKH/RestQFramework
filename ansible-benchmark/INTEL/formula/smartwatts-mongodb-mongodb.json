@@ -12,11 +12,13 @@
         }
     },
     "output": {
-        "pusher_csv": {
+        "pusher_mongodb": {
             "model": "PowerReport",
-            "type": "csv",
-            "name": "pusher_csv",
-            "directory": "/tmp/csv"
+            "type": "mongodb",
+            "name": "pusher_mongodb",
+            "uri": "mongodb://mongodb:27017",
+            "db": "db_power",
+            "collection": "power_reports"
         }
     },
     "cpu-base-freq": 2600,
@@ -26,4 +28,4 @@
     "disable-rapl": true,
     "sensor-reports-frequency": 1000,
     "cpu-tdp": 125
-}
+} 

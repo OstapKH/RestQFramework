@@ -56,65 +56,75 @@
         - node2
         - node3
 
-    - name: Deploy system on Node1
-      command: "kadeploy3 -m {{ node1 }} -e {{ OS_image }}"
+    - name: Deploy systems on all nodes in parallel
+      command: "kadeploy3 -m {{ item }} -e {{ OS_image }}"
+      loop:
+        - "{{ node1 }}"
+        - "{{ node2 }}"
+        - "{{ node3 }}"
+      async: 1800  # 30 minutes timeout
+      poll: 0
+      register: deploy_async_results
 
-    - name: Deploy system on Node2
-      command: "kadeploy3 -m {{ node2 }} -e {{ OS_image }}"
+    - name: Wait for parallel deployments to finish
+      async_status:
+        jid: "{{ item.ansible_job_id }}"
+      register: deploy_async_poll_results
+      until: deploy_async_poll_results.finished
+      retries: 300  # Retry for up to 300 * 10 seconds = 50 minutes
+      delay: 10  # Check every 10 seconds
+      loop: "{{ deploy_async_results.results }}"
 
-    - name: Deploy system on Node3
-      command: "kadeploy3 -m {{ node3 }} -e {{ OS_image }}"
+# - name: Setup Node 1
+#   hosts: node1
+#   remote_user: root
+#   tasks:
+#     - name: Set installation directory for libraries
+#       set_fact:
+#         library_install_dir: /root/public
 
-- name: Setup Node 1
-  hosts: node1
-  remote_user: root
-  tasks:
-    - name: Set installation directory for libraries
-      set_fact:
-        library_install_dir: /root/public
+#     - name: Install podman-docker to {{ library_install_dir }}
+#       apt:
+#         name:
+#           - podman-docker
+#         state: present
+#         install_recommends: no
+#       environment:
+#         DESTDIR: "{{ library_install_dir }}"
 
-    - name: Install podman-docker to {{ library_install_dir }}
-      apt:
-        name:
-          - podman-docker
-        state: present
-        install_recommends: no
-      environment:
-        DESTDIR: "{{ library_install_dir }}"
+#     - name: Install docker.io to {{ library_install_dir }}
+#       apt:
+#         name:
+#           - docker.io
+#         state: present
+#         install_recommends: no
+#       environment:
+#         DESTDIR: "{{ library_install_dir }}"
 
-    - name: Install docker.io to {{ library_install_dir }}
-      apt:
-        name:
-          - docker.io
-        state: present
-        install_recommends: no
-      environment:
-        DESTDIR: "{{ library_install_dir }}"
+# - name: Setup Node 2
+#   hosts: node2
+#   remote_user: root
+#   tasks:
+#     - name: Set installation directory for libraries
+#       set_fact:
+#         library_install_dir: /root/public
 
-- name: Setup Node 2
-  hosts: node2
-  remote_user: root
-  tasks:
-    - name: Set installation directory for libraries
-      set_fact:
-        library_install_dir: /root/public
+#     - name: Install podman-docker to {{ library_install_dir }}
+#       apt:
+#         name:
+#           - podman-docker
+#         state: present
+#         install_recommends: no
+#       environment:
+#         DESTDIR: "{{ library_install_dir }}"
 
-    - name: Install podman-docker to {{ library_install_dir }}
-      apt:
-        name:
-          - podman-docker
-        state: present
-        install_recommends: no
-      environment:
-        DESTDIR: "{{ library_install_dir }}"
+#     - name: Install docker.io to {{ library_install_dir }}
+#       apt:
+#         name:
+#           - docker.io
+#         state: present
+#         install_recommends: no
+#       environment:
+#         DESTDIR: "{{ library_install_dir }}"
 
-    - name: Install docker.io to {{ library_install_dir }}
-      apt:
-        name:
-          - docker.io
-        state: present
-        install_recommends: no
-      environment:
-        DESTDIR: "{{ library_install_dir }}"
-
-# Node 3 doesn't have docker installed in the original playbook, so we skip it
+# # Node 3 doesn't have docker installed in the original playbook, so we skip it

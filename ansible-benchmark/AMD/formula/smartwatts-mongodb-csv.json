@@ -19,11 +19,9 @@
             "directory": "/tmp/csv"
         }
     },
-    "cpu-base-freq": 2600,
+    "cpu-base-freq": 2.2,
     "cpu-error-threshold": 2.0,
-    "disable-cpu-formula": false,
     "disable-dram-formula": true,
-    "disable-rapl": true,
     "sensor-reports-frequency": 1000,
-    "cpu-tdp": 125
+    "cpu-tdp": 170
 }

@@ -46,15 +46,13 @@ services:
     image: ${FORMULA_IMAGE}
     command:
       - "--config-file"
-      - "/opt/formula.json"
+      - "/etc/formula.json"
     volumes:
-      - ${PWD}/formula/smartwatts-${POWERAPI_SOURCE}-${POWERAPI_DESTINATION}.json:/opt/formula.json
+      - ${PWD}/formula/smartwatts-${POWERAPI_SOURCE}-${POWERAPI_DESTINATION}.json:/etc/formula.json
       - ${PWD}/csv:/tmp/csv
     networks:
       - powerapi-network     
     restart: unless-stopped
-    depends_on:
-      - mongodb
 
 
   
