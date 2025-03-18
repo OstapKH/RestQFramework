@@ -45,6 +45,6 @@ cat formula/smartwatts-mongodb-mongodb.json
 
 # Start the stack
 echo "Starting containers..."
-docker-compose up
+docker-compose up -d
 
 echo "Done. Check logs with: docker compose logs -f formula" 
