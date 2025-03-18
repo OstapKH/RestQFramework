@@ -5,7 +5,7 @@
     OS_image: ubuntu2204-x64-min
   tasks:
     - name: Go to the frontend of {{ grid_site }} then create a job
-      command: "oarsub -l host=3,walltime={{ grid_time }} -r 'now' -t deploy"
+      command: "oarsub -l host=3,walltime={{ grid_time }} -r 'now' -t deploy -p 'host like chifflot-%'"
       register: job_output
 
     - name: Extract job ID
@@ -190,6 +190,19 @@
       debug:
         msg: "Docker.io installed in {{ library_install_dir }}."
 
+    - name: Install docker-compose to {{ library_install_dir }}
+      apt:
+        name:
+          - docker-compose
+        state: present
+        install_recommends: no
+      environment:
+          DESTDIR: "{{ library_install_dir }}"
+  
+    - name: Log installation of docker-compose
+      debug:
+        msg: "Docker-compose installed in {{ library_install_dir }}."
+
     - name: Install Cargo and other dependencies to {{ library_install_dir }}
       apt:
         name:
@@ -300,6 +313,14 @@
         proto: tcp
       register: ufw_config
 
+    - name: Run setup-formula-config and start docker compose for DB server
+      shell: |
+        cd /root/RestQFramework/ansible-benchmark/INTEL
+        ./setup-formula-config.sh
+        docker compose up -d
+      become: yes
+      register: docker_compose_db
+
     - name: Run Java application
       shell: |
         cd /root/RestQFramework/core
@@ -371,6 +392,19 @@
     - name: Log installation of docker.io
       debug:
         msg: "Docker.io installed in {{ library_install_dir }}."
+
+    - name: Install docker-compose to {{ library_install_dir }}
+      apt:
+        name:
+          - docker-compose
+        state: present
+        install_recommends: no
+      environment:
+          DESTDIR: "{{ library_install_dir }}"
+
+    - name: Log installation of docker-compose
+      debug:
+        msg: "Docker-compose installed in {{ library_install_dir }}."
 
     - name: Install Cargo and other dependencies to {{ library_install_dir }}
       apt:
@@ -706,3 +740,39 @@
         dest: ~/Desktop/Results_rest_q_xml_benchmarks/node3_syslog_{{ ansible_date_time.iso8601 }}.log
         flat: yes
       ignore_errors: true
+
+- name: Dump MongoDB db_power on DB server (Node1) and fetch dump
+  hosts: node1
+  remote_user: root
+  tasks:
+    - name: Dump MongoDB db_power on DB server
+      shell: mongoexport --db db_power --collection power --out /root/mongodump-DB-server.json --jsonArray
+      register: mongodump_db
+
+    - name: Fetch MongoDB dump from DB server to controller
+      fetch:
+        src: /root/mongodump-DB-server.json
+        dest: ~/Desktop/Results_rest_q_xml_benchmarks/mongodump-DB-server.json
+        flat: yes
+
+    - name: Log DB server dump download
+      debug:
+        msg: "MongoDB dump from DB server downloaded to ~/Desktop/Results_rest_q_xml_benchmarks/mongodump-DB-server.json"
+
+- name: Dump MongoDB db_power on API server (Node2) and fetch dump
+  hosts: node2
+  remote_user: root
+  tasks:
+    - name: Dump MongoDB db_power on API server
+      shell: mongoexport --db db_power --collection power --out /root/mongodump-API-server.json --jsonArray
+      register: mongodump_api
+
+    - name: Fetch MongoDB dump from API server to controller
+      fetch:
+        src: /root/mongodump-API-server.json
+        dest: ~/Desktop/Results_rest_q_xml_benchmarks/mongodump-API-server.json
+        flat: yes
+
+    - name: Log API server dump download
+      debug:
+        msg: "MongoDB dump from API server downloaded to ~/Desktop/Results_rest_q_xml_benchmarks/mongodump-API-server.json"

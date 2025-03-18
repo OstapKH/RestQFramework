@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Stop any running containers
-docker-compose down
+docker compose down
 
 # Ensure JSON file is valid
 echo "Validating the formula config..."
@@ -45,6 +45,6 @@ cat formula/smartwatts-mongodb-mongodb.json
 
 # Start the stack
 echo "Starting containers..."
-docker-compose up -d
+docker compose up
 
-echo "Done. Check logs with: docker-compose logs -f formula" 
+echo "Done. Check logs with: docker compose logs -f formula" 
