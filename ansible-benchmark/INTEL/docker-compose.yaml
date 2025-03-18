@@ -8,8 +8,6 @@ services:
     image: ${MONGO_IMAGE}
     networks:
       - powerapi-network
-    profiles:
-      - mongodb
 
 
   ############################################
@@ -46,10 +44,9 @@ services:
     image: ${FORMULA_IMAGE}
     command:
       - "--config-file"
-      - "/opt/formula.json"
+      - "/tmp/formula-config.json"
     volumes:
-      - ${PWD}/formula/smartwatts-${POWERAPI_SOURCE}-${POWERAPI_DESTINATION}.json:/opt/formula.json
-      - ${PWD}/csv:/tmp/csv
+      - ./formula/smartwatts-mongodb-mongodb.json:/tmp/formula-config.json:ro
     networks:
       - powerapi-network     
     restart: unless-stopped
