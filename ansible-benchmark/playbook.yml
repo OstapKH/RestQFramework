@@ -316,8 +316,8 @@
     - name: Run setup-formula-config and start docker compose for DB server
       shell: |
         cd /root/RestQFramework/ansible-benchmark/INTEL
+        chmod +x setup-formula-config.sh
         ./setup-formula-config.sh
-        docker compose up -d
       become: yes
       register: docker_compose_db
 
@@ -405,6 +405,14 @@
     - name: Log installation of docker-compose
       debug:
         msg: "Docker-compose installed in {{ library_install_dir }}."
+
+    - name: Run setup-formula-config and start docker compose for API server
+      shell: |
+        cd /root/RestQFramework/ansible-benchmark/INTEL
+        chmod +x setup-formula-config.sh
+        ./setup-formula-config.sh
+      become: yes
+      register: docker_compose_apiserver
 
     - name: Install Cargo and other dependencies to {{ library_install_dir }}
       apt:
