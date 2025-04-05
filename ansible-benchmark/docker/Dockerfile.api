@@ -1,0 +1,24 @@
+FROM openjdk:21-slim
+
+# Install Maven
+RUN apt-get update && \
+    apt-get install -y maven git
+
+# Clone and build RestQFramework
+RUN git clone https://github.com/OstapKH/RestQFramework.git /app && \
+    cd /app/benchbase && \
+    ./mvnw clean install -P postgres -DskipTests && \
+    cd /app/core && \
+    mvn clean install -P simple-jar && \
+    cd /app/api-http && \
+    mvn clean install -P springboot-app
+
+# Create startup script
+RUN echo '#!/bin/bash\n\
+java -jar /app/api-http/target/api-http-1.0-SNAPSHOT.jar\n\
+' > /start.sh && \
+    chmod +x /start.sh
+
+EXPOSE 8086
+
+CMD ["/start.sh"] 

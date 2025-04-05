@@ -1,0 +1,30 @@
+FROM postgres:14
+
+# Install Java 21
+RUN apt-get update && \
+    apt-get install -y wget ca-certificates && \
+    wget https://download.oracle.com/java/21/latest/jdk-21_linux-x64_bin.deb && \
+    apt-get install -y ./jdk-21_linux-x64_bin.deb && \
+    rm jdk-21_linux-x64_bin.deb
+
+# Install Maven
+RUN apt-get install -y maven
+
+# Clone and build RestQFramework
+RUN apt-get install -y git && \
+    git clone https://github.com/OstapKH/RestQFramework.git /app && \
+    cd /app/benchbase && \
+    ./mvnw clean install -P postgres -DskipTests && \
+    cd /app/core && \
+    mvn clean install -P executable-jar
+
+# Create startup script
+RUN echo '#!/bin/bash\n\
+service postgresql start\n\
+java -jar /app/core/target/core-1.0-SNAPSHOT.jar\n\
+' > /start.sh && \
+    chmod +x /start.sh
+
+EXPOSE 5432
+
+CMD ["/start.sh"] 

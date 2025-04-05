@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  db-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=tpchdb
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  api-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "8086:8086"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db-server:5432/tpchdb
+      - JAKARTA_PERSISTENCE_JDBC_URL=jdbc:postgresql://db-server:5432/tpchdb
+    depends_on:
+      - db-server
+    networks:
+      - app-network
+
+volumes:
+  postgres_data:
+
+networks:
+  app-network:
+    driver: bridge 
