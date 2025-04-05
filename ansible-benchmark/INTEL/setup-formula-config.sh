@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Stop any running containers
-docker compose down
+# Do not stop the containers, we want to keep the postgresql container running
+# docker compose down
 
 # Ensure JSON file is valid
 echo "Validating the formula config..."
@@ -32,7 +32,7 @@ JSON='{
     "cpu-error-threshold": 2.0,
     "disable-cpu-formula": false,
     "disable-dram-formula": true,
-    "sensor-reports-frequency": 1000,
+    "sensor-reports-frequency": 500,
     "cpu-tdp": 125
 }'
 
