@@ -3,45 +3,74 @@
   remote_user: oskilbaso
   vars:
     OS_image: ubuntu2204-x64-min
+    grid_time: "5:00:00"
   tasks:
     - name: Go to the frontend of {{ grid_site }} then create a job
-      command: "oarsub -l host=3,walltime={{ grid_time }} -r 'now' -t deploy -p 'host like chifflot-%'"
+      command: "oarsub -l host=2,walltime={{ grid_time }} -r 'now' -t deploy -p 'host like chifflot-%'"
       register: job_output
 
-    - name: Extract job ID
+    - name: Extract job ID for chifflot nodes
       set_fact:
-        job_id: "{{ job_output.stdout | regex_search('OAR_JOB_ID=(\\d+)', '\\1') | first }}"
+        chifflot_job_id: "{{ job_output.stdout | regex_search('OAR_JOB_ID=(\\d+)', '\\1') | first }}"
 
-    - name: Log job ID
+    - name: Log chifflot job ID
       debug:
-        msg: "Job ID: {{ job_id }}"
+        msg: "Chifflot Job ID: {{ chifflot_job_id }}"
 
-    - name: Wait for reservation validation
+    - name: Wait for chifflot reservation validation
       pause:
-        minutes: 7
+        minutes: 10
 
-    - name: Get job details
-      command: "oarstat -f -j {{ job_id }}"
-      register: job_details
+    - name: Get chifflot job details
+      command: "oarstat -f -j {{ chifflot_job_id }}"
+      register: chifflot_job_details
 
-    - name: Extract assigned hostnames
+    - name: Extract assigned chifflot hostnames
       set_fact:
-        reserved_nodes: "{{ (job_details.stdout | regex_search('assigned_hostnames = (.+)', '\\1')) | first | split('+') }}"
+        chifflot_nodes: "{{ (chifflot_job_details.stdout | regex_search('assigned_hostnames = (.+)', '\\1')) | first | split('+') }}"
 
-    - name: Log reserved nodes
+    - name: Log chifflot nodes
       debug:
-        msg: "Reserved nodes: {{ reserved_nodes }}"
+        msg: "Chifflot nodes: {{ chifflot_nodes }}"
+
+    - name: Reserve one additional node
+      command: "oarsub -l host=1,walltime={{ grid_time }} -r 'now' -t deploy"
+      register: other_job_output
+
+    - name: Extract job ID for other node
+      set_fact:
+        other_job_id: "{{ other_job_output.stdout | regex_search('OAR_JOB_ID=(\\d+)', '\\1') | first }}"
+
+    - name: Log other job ID
+      debug:
+        msg: "Other Job ID: {{ other_job_id }}"
+
+    - name: Wait for other reservation validation
+      pause:
+        minutes: 10
+
+    - name: Get other job details
+      command: "oarstat -f -j {{ other_job_id }}"
+      register: other_job_details
+
+    - name: Extract assigned other hostname
+      set_fact:
+        other_node: "{{ (other_job_details.stdout | regex_search('assigned_hostnames = (.+)', '\\1')) | first }}"
+
+    - name: Log other node
+      debug:
+        msg: "Other node: {{ other_node }}"
 
     - name: Assign node names to variables
       set_fact:
-        node1: "{{ reserved_nodes[0] }}"
-        node2: "{{ reserved_nodes[1] }}"
-        node3: "{{ reserved_nodes[2] }}"
+        node1: "{{ chifflot_nodes[0] }}"
+        node2: "{{ chifflot_nodes[1] }}"
+        node3: "{{ other_node }}"
         cacheable: true
 
     - name: Log node assignments
       debug:
-        msg: "Node1: {{ node1 }}, Node2: {{ node2 }}, Node3: {{ node3 }}"
+        msg: "Node1 (chifflot): {{ node1 }}, Node2 (chifflot): {{ node2 }}, Node3: {{ node3 }}"
 
     - name: Add nodes to in-memory inventory
       add_host:
@@ -56,18 +85,50 @@
         - node2
         - node3
 
-    - name: Deploy system on Node1
-      command: "kadeploy3 -m {{ node1 }} -e {{ OS_image }}"
+    - name: Deploy systems on all nodes in parallel
+      command: "kadeploy3 -m {{ item }} -e {{ OS_image }}"
+      loop:
+        - "{{ node1 }}"
+        - "{{ node2 }}"
+        - "{{ node3 }}"
+      async: 1800  # 30 minutes timeout
+      poll: 0
+      register: deploy_async_results
 
-    - name: Deploy system on Node2
-      command: "kadeploy3 -m {{ node2 }} -e {{ OS_image }}"
+    - name: Wait for parallel deployments to finish
+      async_status:
+        jid: "{{ item.ansible_job_id }}"
+      register: deploy_async_poll_results
+      until: deploy_async_poll_results.finished
+      retries: 300  # Retry for up to 300 * 10 seconds = 50 minutes
+      delay: 10  # Check every 10 seconds
+      loop: "{{ deploy_async_results.results }}"
 
-    - name: Deploy system on Node3
-      command: "kadeploy3 -m {{ node3 }} -e {{ OS_image }}"
+# - name: Deploy system on nodes
+#   hosts: grid5000
+#   remote_user: oskilbaso
+#   vars:
+#     OS_image: ubuntu2204-x64-min
+#   tasks:
+#     - name: Deploy system on Node1
+#       command: "kadeploy3 -m chifflot-1.{{ grid_site }}.grid5000.fr -e {{ OS_image }}"
+
+#     - name: Deploy system on Node2
+#       command: "kadeploy3 -m chifflot-2.{{ grid_site }}.grid5000.fr -e {{ OS_image }}"
+
+#     - name: Deploy system on Node3
+#       command: "kadeploy3 -m chifflot-7.{{ grid_site }}.grid5000.fr -e {{ OS_image }}"
 
 - name: Setup Node 1
   hosts: node1
   remote_user: root
+  vars:
+    postgres_container_name: db-docker-container
+    postgres_image: postgres:14
+    postgres_password: password
+    tpch_db: tpchdb
+    postgres_port: 5432
+
   tasks:
     - name: Download Java 21
       get_url:
@@ -88,122 +149,77 @@
       debug:
         msg: "Java installation completed with status: {{ java_install.changed }}"
 
-    - name: Install wget and ca-certificates
+    - name: Update apt cache
       apt:
-        name: 
+        update_cache: yes
+
+    - name: Run apt-get update
+      command: apt-get update
+      changed_when: false
+
+    - name: Install wget, ca-certificates, and Docker dependencies
+      apt:
+        name:
           - wget
           - ca-certificates
+          - apt-transport-https
+          - gnupg-agent
+          - software-properties-common
         state: present
-      register: wget_install
-
-    - name: Add PostgreSQL repository
-      shell: sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main" >> /etc/apt/sources.list.d/pgdg.list'
-      register: pg_repo
-
-    - name: Import PostgreSQL repository signing key
-      ansible.builtin.apt_key:
-        url: https://www.postgresql.org/media/keys/ACCC4CF8.asc
-        state: present
-      register: pg_key_import
-
-    - name: Log key import status
-      debug:
-        msg: "PostgreSQL key import status: {{ pg_key_import.changed }}"
 
     - name: Update apt cache
       apt:
         update_cache: yes
-      register: apt_update
 
-    - name: Install PostgreSQL
-      apt:
-        name:
-          - postgresql-14
-          - postgresql-contrib-14
-        state: present
-      register: pg_install
-
-    - name: Log PostgreSQL installation
-      debug:
-        msg: "PostgreSQL installation completed with status: {{ pg_install.changed }}"
-
-    - name: Create PostgreSQL admin user and set password
-      ansible.builtin.shell: |
-        sudo -i -u postgres psql -c "CREATE USER admin WITH PASSWORD 'password';"
-        sudo -i -u postgres psql -c "ALTER USER admin CREATEDB;"
-        sudo -i -u postgres psql -c "CREATE DATABASE tpchdb OWNER admin;"
-      register: pg_creation_status
-
-    - name: Log PostgreSQL admin user creation
-      debug:
-        msg: "PostgreSQL admin user created and database tpchdb assigned to admin."
-
-    - name: Log database creation
-      debug:
-        msg: "Database creation status: {{ pg_creation_status.stdout_lines }}"
-
-    - name: Install required Python packages for PostgreSQL
-      ansible.builtin.package:
-        name: python3-psycopg2
-        state: present
-
-    - name: Log Python package installation
-      debug:
-        msg: "Required Python packages for PostgreSQL installed."
-
-    - name: Restart PostgreSQL to apply changes
-      ansible.builtin.service:
-        name: postgresql@14-main
-        state: restarted
-
-    - name: Log PostgreSQL restart
-      debug:
-        msg: "PostgreSQL service restarted."
-
-    - name: Set installation directory for libraries
-      set_fact:
-        library_install_dir: /root/public
-
-    - name: Install podman-docker to {{ library_install_dir }}
-      apt:
-        name:
-          - podman-docker
-        state: present
-        install_recommends: no
-      environment:
-        DESTDIR: "{{ library_install_dir }}"
-
-    - name: Log installation of podman-docker
-      debug:
-        msg: "Podman-docker installed in {{ library_install_dir }}."
-
-    - name: Install docker.io to {{ library_install_dir }}
+    - name: Install Docker and Docker Compose
       apt:
         name:
           - docker.io
-        state: present
-        install_recommends: no
-      environment:
-        DESTDIR: "{{ library_install_dir }}"
-
-    - name: Log installation of docker.io
-      debug:
-        msg: "Docker.io installed in {{ library_install_dir }}."
-
-    - name: Install docker-compose to {{ library_install_dir }}
-      apt:
-        name:
           - docker-compose
         state: present
-        install_recommends: no
-      environment:
-          DESTDIR: "{{ library_install_dir }}"
-  
-    - name: Log installation of docker-compose
-      debug:
-        msg: "Docker-compose installed in {{ library_install_dir }}."
 
-    - name: Install Cargo and other dependencies to {{ library_install_dir }}
+    - name: Ensure Docker service is running
+      service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Copy docker-compose file
+      copy:
+        src: docker-compose.yml
+        dest: /root/docker-compose.yml
+        mode: '0644'
+
+    - name: Start PostgreSQL with docker-compose
+      docker_compose:
+        project_src: /root
+        files:
+          - docker-compose.yml
+        state: present
+        build: no
+        remove_orphans: yes
+      register: docker_compose_result
+      retries: 3
+      delay: 10
+      until: docker_compose_result.state == 'present'
+
+    - name: Wait for PostgreSQL to be ready
+      wait_for:
+        host: 127.0.0.1
+        port: "{{ postgres_port }}"
+        delay: 5
+        timeout: 60
+        state: started
+
+    - name: Log database setup
+      debug:
+        msg: "PostgreSQL container is running with DB 'tpchdb' and user 'admin'"
+
+    - name: Set installation directory for libraries
+      set_fact:
+        library_install_dir: "/root/public"
+
+    - name: Install Cargo and other dependencies
       apt:
         name:
           - cargo
@@ -211,12 +227,10 @@
           - libssl-dev
         state: present
         install_recommends: no
-      environment:
-        DESTDIR: "{{ library_install_dir }}"
 
     - name: Log installation of Cargo and dependencies
       debug:
-        msg: "Cargo and other dependencies installed in {{ library_install_dir }}."
+        msg: "Cargo and other dependencies installed"
 
     - name: Clone Scaphandre repo
       git:
@@ -285,33 +299,36 @@
       debug:
         msg: "Core build completed with status: {{ core_build.rc }}"
 
-    - name: Configure PostgreSQL - listen_addresses
+    - name: Configure database connection properties
       lineinfile:
-        path: /etc/postgresql/14/main/postgresql.conf
-        regexp: '^#?listen_addresses'
-        line: "listen_addresses = '*'"
-      register: pg_conf
+        path: /root/RestQFramework/core/src/main/resources/application.properties
+        regexp: '^spring.datasource.url=.*'
+        line: "spring.datasource.url=jdbc:postgresql://localhost:{{ postgres_port }}/{{ tpch_db }}"
+        create: yes
 
-    - name: Configure PostgreSQL - pg_hba.conf
-      blockinfile:
-        path: /etc/postgresql/14/main/pg_hba.conf
-        block: |
-          host    all    all    0.0.0.0/0    md5
-          host    all    all    0.0.0.0/0    scram-sha-256
-      register: pg_hba
+    - name: Configure database username
+      lineinfile:
+        path: /root/RestQFramework/core/src/main/resources/application.properties
+        regexp: '^spring.datasource.username=.*'
+        line: "spring.datasource.username=admin"
+        create: yes
 
-    - name: Restart PostgreSQL
-      systemd:
-        name: postgresql
-        state: restarted
-      register: pg_restart
+    - name: Configure database password
+      lineinfile:
+        path: /root/RestQFramework/core/src/main/resources/application.properties
+        regexp: '^spring.datasource.password=.*'
+        line: "spring.datasource.password={{ postgres_password }}"
+        create: yes
 
-    - name: Allow PostgreSQL through firewall
-      ufw:
-        rule: allow
-        port: 5432
-        proto: tcp
-      register: ufw_config
+    - name: Rebuild core with updated configuration
+      shell: |
+        cd /root/RestQFramework/core
+        mvn clean install -P executable-jar
+      register: core_rebuild
+
+    - name: Log core rebuild
+      debug:
+        msg: "Core rebuild completed with status: {{ core_rebuild.rc }}"
 
     - name: Run setup-formula-config and start docker compose for DB server
       shell: |
@@ -324,7 +341,8 @@
     - name: Run Java application
       shell: |
         cd /root/RestQFramework/core
-        java -jar target/core-1.0-SNAPSHOT.jar
+        java -jar target/core-1.0-SNAPSHOT.jar > /root/core_server.log 2>&1 &
+      register: java_app_start
 
     - name: Log Java application start
       debug:
@@ -362,6 +380,10 @@
     - name: Update apt cache
       apt:
         update_cache: yes
+
+    - name: Run apt-get update
+      command: apt-get update
+      changed_when: false
 
     - name: Set installation directory for libraries
       set_fact:
@@ -405,14 +427,6 @@
     - name: Log installation of docker-compose
       debug:
         msg: "Docker-compose installed in {{ library_install_dir }}."
-
-    - name: Run setup-formula-config and start docker compose for API server
-      shell: |
-        cd /root/RestQFramework/ansible-benchmark/INTEL
-        chmod +x setup-formula-config.sh
-        ./setup-formula-config.sh
-      become: yes
-      register: docker_compose_apiserver
 
     - name: Install Cargo and other dependencies to {{ library_install_dir }}
       apt:
@@ -469,6 +483,14 @@
         dest: /root/RestQFramework
         recursive: yes
 
+    - name: Run setup-formula-config and start docker compose for API server
+      shell: |
+        cd /root/RestQFramework/ansible-benchmark/INTEL
+        chmod +x setup-formula-config.sh
+        ./setup-formula-config.sh
+      become: yes
+      register: docker_compose_apiserver
+
     - name: Build benchbase
       shell: |
         cd /root/RestQFramework/benchbase/
@@ -495,25 +517,64 @@
       shell: |
         cd /root/RestQFramework/api-http
         mvn clean install -P springboot-app
-
-    - name: Run API server
-      shell: |
-        cd /root/RestQFramework/api-http
-        java -jar target/api-http-1.0-SNAPSHOT.jar > /root/api_server.log 2>&1
-      async: 3600
-      poll: 0        
-      register: api_server
-
-    - name: Log API server start
-      debug:
-        msg: "API server started on Node2. {{ node2 }}"
-
+    
     - name: Start Scaphandre measurement on API server
       shell: |
         nohup scaphandre json -t 3600 -s {{ scaphandre_timestep_s }} --step-nano {{ scaphandre_timestep_nanoseconds }} -f /root/experiments_summary_apiserver.json &
       async: 3600
       poll: 0
-      register: API_energy_measurement
+      register: scaphandre_task
+
+    - name: Run setup-formula-config and start docker compose for power monitoring
+      shell: |
+        cd /root/RestQFramework/ansible-benchmark/INTEL
+        chmod +x setup-formula-config.sh
+        ./setup-formula-config.sh
+      become: yes
+      register: docker_compose_power
+
+    - name: Create systemd service file
+      copy:
+        dest: /etc/systemd/system/my-java-app.service
+        content: |
+          [Unit]
+          Description=My Java Application
+          After=network.target
+
+          [Service]
+          Type=simple
+          User=root
+          WorkingDirectory=/root/RestQFramework/api-http
+          ExecStart=/usr/bin/java -jar /root/RestQFramework/api-http/target/api-http-1.0-SNAPSHOT.jar
+          Restart=on-failure
+          SuccessExitStatus=143
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: yes
+
+    - name: Enable Java application service
+      systemd:
+        name: my-java-app
+        enabled: yes
+        state: started
+
+    - name: Wait for service to start
+      wait_for:
+        port: 8086
+        timeout: 60
+
+    - name: Run Java application
+      shell: |
+        cd /root/RestQFramework/api-http
+        nohup java -jar /root/RestQFramework/api-http/target/api-http-1.0-SNAPSHOT.jar > /root/api_server.log 2>&1 &
+
+    - name: Log Java application start
+      debug:
+        msg: "Java application started (API server)"
 
 - name: Setup Node 3
   hosts: node3
@@ -707,27 +768,154 @@
       debug:
         msg: "Combined benchmark results downloaded to your local machine at ~/Desktop/Results_rest_q_xml_benchmarks/combined_results_{{ timestamp }}.json"
 
-- name: Fetch log files from Node 2 (API server)
+# - name: Fetch log files from Node 2 (API server)
+#   hosts: node2
+#   remote_user: root
+#   tasks:
+    # - name: Fetch API server logs
+    #   fetch:
+    #     src: /root/api_server.log
+    #     dest: ~/Desktop/Results_rest_q_xml_benchmarks/api_server_{{ ansible_date_time.iso8601 }}.log
+    #     flat: yes
+    #         
+    # - name: Log API server log download
+    #   debug:
+    #     msg: "API server logs downloaded to your local machine at ~/Desktop/Results_rest_q_xml_benchmarks/api_server_{{ ansible_date_time.iso8601 }}.log"
+        
+    # - name: Fetch system logs
+    #   fetch:
+    #     src: /var/log/syslog
+    #     dest: ~/Desktop/Results_rest_q_xml_benchmarks/node2_syslog_{{ ansible_date_time.iso8601 }}.log
+    #     flat: yes
+    #   ignore_errors: true
+      
+# - name: Add nodes to inventory
+#   hosts: localhost
+#   gather_facts: false
+#   tasks:
+#     - name: Add nodes to inventory
+#       add_host:
+#         name: "node1"
+#         ansible_host: "chifflot-3.lille.grid5000.fr"
+#         groups: reserved_nodes
+#       register: node1_add
+
+#     - name: Add nodes to inventory
+#       add_host:
+#         name: "node2"
+#         ansible_host: "chifflot-5.lille.grid5000.fr"
+#         groups: reserved_nodes
+#       register: node2_add
+
+#     - name: Add nodes to inventory
+#       add_host:
+#         name: "node3"
+#         ansible_host: "chifflot-7.lille.grid5000.fr"
+#         groups: reserved_nodes
+#       register: node3_add
+
+- name: Install MongoDB tools on Node1
+  hosts: node1
+  remote_user: root
+  tasks:
+    - name: Import MongoDB public key
+      apt_key:
+        url: https://www.mongodb.org/static/pgp/server-6.0.asc
+        state: present
+
+    - name: Add MongoDB repository
+      apt_repository:
+        repo: "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/6.0 multiverse"
+        state: present
+        filename: mongodb-org-6.0
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install MongoDB tools
+      apt:
+        name: mongodb-database-tools
+        state: present
+
+- name: Install MongoDB tools on Node2
   hosts: node2
   remote_user: root
   tasks:
-    - name: Fetch API server logs
+    - name: Import MongoDB public key
+      apt_key:
+        url: https://www.mongodb.org/static/pgp/server-6.0.asc
+        state: present
+
+    - name: Add MongoDB repository
+      apt_repository:
+        repo: "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/6.0 multiverse"
+        state: present
+        filename: mongodb-org-6.0
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install MongoDB tools
+      apt:
+        name: mongodb-database-tools
+        state: present
+
+- name: Dump MongoDB db_power on DB server (Node1) and fetch dump
+  hosts: node1
+  remote_user: root
+  tasks:
+    - name: Dump MongoDB db_power on DB server
+      shell: docker exec mongodb mongoexport --db db_power --collection power_reports --out /root/mongodump-DB-server.json --jsonArray
+      register: mongodump_db
+    
+    - name: Download JSON file from docker container to node 
+      shell: docker cp mongodb:/root/mongodump-DB-server.json /root/mongodump-DB-server.json
+
+    - name: Fetch MongoDB dump from DB server to controller
       fetch:
-        src: /root/api_server.log
-        dest: ~/Desktop/Results_rest_q_xml_benchmarks/api_server_{{ ansible_date_time.iso8601 }}.log
+        src: /root/mongodump-DB-server.json
+        dest: ~/Desktop/Results_rest_q_xml_benchmarks/mongodump-DB-server.json
         flat: yes
 
-    - name: Log API server log download
+    - name: Log DB server dump download
       debug:
-        msg: "API server logs downloaded to your local machine at ~/Desktop/Results_rest_q_xml_benchmarks/api_server_{{ ansible_date_time.iso8601 }}.log"
-        
-    - name: Fetch system logs
+        msg: "MongoDB dump from DB server downloaded to ~/Desktop/Results_rest_q_xml_benchmarks/mongodump-DB-server.json"
+
+- name: Dump MongoDB db_power on API server (Node2) and fetch dump
+  hosts: node2
+  remote_user: root
+  tasks:
+    - name: Dump MongoDB db_power on API server
+      shell: docker exec mongodb mongoexport --db db_power --collection power_reports --out /root/mongodump-API-server.json --jsonArray
+      register: mongodump_api
+
+    - name: Download JSON file from docker container to node 
+      shell: docker cp mongodb:/root/mongodump-API-server.json /root/mongodump-API-server.json
+
+    - name: Fetch MongoDB dump from API server to controller
       fetch:
-        src: /var/log/syslog
-        dest: ~/Desktop/Results_rest_q_xml_benchmarks/node2_syslog_{{ ansible_date_time.iso8601 }}.log
+        src: /root/mongodump-API-server.json
+        dest: ~/Desktop/Results_rest_q_xml_benchmarks/mongodump-API-server.json
         flat: yes
-      ignore_errors: true
-      
+
+    - name: Log API server dump download
+      debug:
+        msg: "MongoDB dump from API server downloaded to ~/Desktop/Results_rest_q_xml_benchmarks/mongodump-API-server.json"
+
+
+# - name: Fetch log files from Node 2 (API server)
+#   hosts: node2
+#   remote_user: root
+#   tasks:
+#     - name: Fetch system logs
+#       fetch:
+#         src: /var/log/syslog
+#         dest: ~/Desktop/Results_rest_q_xml_benchmarks/node2_syslog_{{ ansible_date_time.iso8601 }}.log
+#         flat: yes
+#       ignore_errors: true
+
 - name: Fetch log files from Node 3 (Benchmark client)
   hosts: node3
   remote_user: root
@@ -748,39 +936,3 @@
         dest: ~/Desktop/Results_rest_q_xml_benchmarks/node3_syslog_{{ ansible_date_time.iso8601 }}.log
         flat: yes
       ignore_errors: true
-
-- name: Dump MongoDB db_power on DB server (Node1) and fetch dump
-  hosts: node1
-  remote_user: root
-  tasks:
-    - name: Dump MongoDB db_power on DB server
-      shell: mongoexport --db db_power --collection power --out /root/mongodump-DB-server.json --jsonArray
-      register: mongodump_db
-
-    - name: Fetch MongoDB dump from DB server to controller
-      fetch:
-        src: /root/mongodump-DB-server.json
-        dest: ~/Desktop/Results_rest_q_xml_benchmarks/mongodump-DB-server.json
-        flat: yes
-
-    - name: Log DB server dump download
-      debug:
-        msg: "MongoDB dump from DB server downloaded to ~/Desktop/Results_rest_q_xml_benchmarks/mongodump-DB-server.json"
-
-- name: Dump MongoDB db_power on API server (Node2) and fetch dump
-  hosts: node2
-  remote_user: root
-  tasks:
-    - name: Dump MongoDB db_power on API server
-      shell: mongoexport --db db_power --collection power --out /root/mongodump-API-server.json --jsonArray
-      register: mongodump_api
-
-    - name: Fetch MongoDB dump from API server to controller
-      fetch:
-        src: /root/mongodump-API-server.json
-        dest: ~/Desktop/Results_rest_q_xml_benchmarks/mongodump-API-server.json
-        flat: yes
-
-    - name: Log API server dump download
-      debug:
-        msg: "MongoDB dump from API server downloaded to ~/Desktop/Results_rest_q_xml_benchmarks/mongodump-API-server.json"
