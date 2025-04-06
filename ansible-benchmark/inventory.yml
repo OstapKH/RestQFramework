@@ -3,11 +3,20 @@ all:
     grid_site: lille
     grid_time: '03:00:00'
     scaphandre_timestep_s: 0 # Timestep in nanoseconds
-    scaphandre_timestep_nanoseconds: 10000000 # Nanoseconds, 10ms or 0.01s
+    scaphandre_timestep_nanoseconds: 500000000 # Nanoseconds, 0.5s
     ansible_ssh_private_key_file: ~/.ssh/grid5000_key
+    # node1: "chifflot-1.{{ grid_site }}.grid5000.fr"
+    # node2: "chifflot-2.{{ grid_site }}.grid5000.fr"
+    # node3: "chifflot-7.{{ grid_site }}.grid5000.fr"
 
   hosts:
     grid5000:
       ansible_host: "frontend.{{ grid_site }}.grid5000.fr"
-    reserved_machine:
+    # node1:
+    #   ansible_host: "{{ node1 }}"
+    # node2:
+    #   ansible_host: "{{ node2 }}"
+    # node3:
+    #   ansible_host: "{{ node3 }}"
+    # reserved_machine:
       # This will be dynamically updated
