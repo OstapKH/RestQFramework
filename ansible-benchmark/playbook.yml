@@ -183,25 +183,27 @@
         name: docker
         state: started
         enabled: true
+    
+    - name: Clone RestQFramework repository
+      git:
+        repo: https://github.com/OstapKH/RestQFramework.git
+        dest: /root/RestQFramework
+        recursive: yes
+      register: git_clone
 
-    - name: Copy docker-compose file
-      copy:
-        src: docker-compose.yml
-        dest: /root/docker-compose.yml
-        mode: '0644'
+    - name: Log repository clone
+      debug:
+        msg: "Repository cloned"
 
     - name: Start PostgreSQL with docker-compose
-      docker_compose:
-        project_src: /root
-        files:
-          - docker-compose.yml
-        state: present
-        build: no
-        remove_orphans: yes
+      shell: |
+        cd /root/RestQFramework/ansible-benchmark/docker-db
+        docker-compose up -d
       register: docker_compose_result
       retries: 3
       delay: 10
-      until: docker_compose_result.state == 'present'
+      until: docker_compose_result is success
+      ignore_errors: true
 
     - name: Wait for PostgreSQL to be ready
       wait_for:
@@ -266,18 +268,6 @@
 
     - name: Initialize Maven wrapper
       shell: mvn -N io.takari:maven:wrapper
-      register: mvn_wrapper
-
-    - name: Clone RestQFramework repository
-      git:
-        repo: https://github.com/OstapKH/RestQFramework.git
-        dest: /root/RestQFramework
-        recursive: yes
-      register: git_clone
-
-    - name: Log repository clone
-      debug:
-        msg: "Repository cloned"
 
     - name: Build benchbase
       shell: |
@@ -358,6 +348,14 @@
 - name: Setup Node 2
   hosts: node2
   remote_user: root
+  vars:
+    api_container_name: spring-api
+    api_port: 8086
+    db_host: "{{ node1 }}"
+    db_port: 5432
+    db_name: tpchdb
+    db_user: admin
+    db_password: password
   tasks:
     - name: Download Java 21
       get_url:
@@ -483,13 +481,13 @@
         dest: /root/RestQFramework
         recursive: yes
 
-    - name: Run setup-formula-config and start docker compose for API server
+    - name: Run setup-formula-config and start docker compose for power monitoring
       shell: |
         cd /root/RestQFramework/ansible-benchmark/INTEL
         chmod +x setup-formula-config.sh
         ./setup-formula-config.sh
       become: yes
-      register: docker_compose_apiserver
+      register: docker_compose_power
 
     - name: Build benchbase
       shell: |
@@ -505,19 +503,19 @@
       lineinfile:
         path: /root/RestQFramework/api-http/src/main/resources/application.properties
         regexp: '^spring.datasource.url=.*'
-        line: "spring.datasource.url=jdbc:postgresql://{{ node1 }}:5432/tpchdb"
+        line: "spring.datasource.url=jdbc:postgresql://{{ db_host }}:{{ db_port }}/{{ db_name }}"
 
     - name: Modify Jakarta persistence URL
       lineinfile:
         path: /root/RestQFramework/api-http/src/main/resources/application.properties
         regexp: '^jakarta.persistence.jdbc.url=.*'
-        line: "jakarta.persistence.jdbc.url=jdbc:postgresql://{{ node1 }}:5432/tpchdb"
+        line: "jakarta.persistence.jdbc.url=jdbc:postgresql://{{ db_host }}:{{ db_port }}/{{ db_name }}"
 
     - name: Build API HTTP module
       shell: |
         cd /root/RestQFramework/api-http
         mvn clean install -P springboot-app
-    
+
     - name: Start Scaphandre measurement on API server
       shell: |
         nohup scaphandre json -t 3600 -s {{ scaphandre_timestep_s }} --step-nano {{ scaphandre_timestep_nanoseconds }} -f /root/experiments_summary_apiserver.json &
@@ -525,56 +523,55 @@
       poll: 0
       register: scaphandre_task
 
-    - name: Run setup-formula-config and start docker compose for power monitoring
-      shell: |
-        cd /root/RestQFramework/ansible-benchmark/INTEL
-        chmod +x setup-formula-config.sh
-        ./setup-formula-config.sh
-      become: yes
-      register: docker_compose_power
-
-    - name: Create systemd service file
+    - name: Copy built JAR file to docker-api directory
       copy:
-        dest: /etc/systemd/system/my-java-app.service
-        content: |
-          [Unit]
-          Description=My Java Application
-          After=network.target
+        src: /root/RestQFramework/api-http/target/api-http-1.0-SNAPSHOT.jar
+        dest: /root/RestQFramework/ansible-benchmark/docker-api/target/api-http-1.0-SNAPSHOT.jar
+        mode: '0644'
+        remote_src: yes
 
-          [Service]
-          Type=simple
-          User=root
-          WorkingDirectory=/root/RestQFramework/api-http
-          ExecStart=/usr/bin/java -jar /root/RestQFramework/api-http/target/api-http-1.0-SNAPSHOT.jar
-          Restart=on-failure
-          SuccessExitStatus=143
+    - name: Update docker-compose.yml with correct environment variables
+      lineinfile:
+        path: /root/RestQFramework/ansible-benchmark/docker-api/docker-compose.yml
+        regexp: '^      SPRING_DATASOURCE_URL:.*'
+        line: "      SPRING_DATASOURCE_URL: jdbc:postgresql://{{ db_host }}:{{ db_port }}/{{ db_name }}"
+      register: update_db_url
 
-          [Install]
-          WantedBy=multi-user.target
+    - name: Update docker-compose.yml with database username
+      lineinfile:
+        path: /root/RestQFramework/ansible-benchmark/docker-api/docker-compose.yml
+        regexp: '^      SPRING_DATASOURCE_USERNAME:.*'
+        line: "      SPRING_DATASOURCE_USERNAME: {{ db_user }}"
+      register: update_db_user
 
-    - name: Reload systemd daemon
-      systemd:
-        daemon_reload: yes
+    - name: Update docker-compose.yml with database password
+      lineinfile:
+        path: /root/RestQFramework/ansible-benchmark/docker-api/docker-compose.yml
+        regexp: '^      SPRING_DATASOURCE_PASSWORD:.*'
+        line: "      SPRING_DATASOURCE_PASSWORD: {{ db_password }}"
+      register: update_db_password
 
-    - name: Enable Java application service
-      systemd:
-        name: my-java-app
-        enabled: yes
+    - name: Start API server container
+      shell: |
+        cd /root/RestQFramework/ansible-benchmark/docker-api
+        docker-compose up -d
+      register: docker_compose_result
+      retries: 3
+      delay: 10
+      until: docker_compose_result is success
+      ignore_errors: true
+
+    - name: Wait for API server to be ready
+      wait_for:
+        host: 127.0.0.1
+        port: "{{ api_port }}"
+        delay: 5
+        timeout: 60
         state: started
 
-    - name: Wait for service to start
-      wait_for:
-        port: 8086
-        timeout: 60
-
-    - name: Run Java application
-      shell: |
-        cd /root/RestQFramework/api-http
-        nohup java -jar /root/RestQFramework/api-http/target/api-http-1.0-SNAPSHOT.jar > /root/api_server.log 2>&1 &
-
-    - name: Log Java application start
+    - name: Log API server container start
       debug:
-        msg: "Java application started (API server)"
+        msg: "API server container is running on port {{ api_port }}"
 
 - name: Setup Node 3
   hosts: node3
