@@ -13,14 +13,14 @@ import java.util.Date;
 
 public class JsonCombiner {
     public static void main(String[] args) {
-        if (args.length < 2) {
-            System.err.println("Usage: JsonCombiner <inputDirectory> <outputFile>");
-            System.exit(1);
-        }
+       if (args.length < 2) {
+           System.err.println("Usage: JsonCombiner <inputDirectory> <outputFile>");
+           System.exit(1);
+       }
 
-        String inputDir = args[0];
-        String outputFile = args[1];
-        
+       String inputDir = args[0];
+       String outputFile = args[1];
+
         try {
             // First fix all JSON files in the directory
             JsonFixer.fixJsonFilesInFolder(inputDir);
@@ -83,3 +83,4 @@ public class JsonCombiner {
         }
     }
 } 
+
