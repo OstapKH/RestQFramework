@@ -29,7 +29,7 @@ JSON='{
         }
     },
     "cpu-base-freq": 2600,
-    "cpu-error-threshold": 2.0,
+    "cpu-error-threshold": 2.5,
     "disable-cpu-formula": false,
     "disable-dram-formula": true,
     "sensor-reports-frequency": 1000,
