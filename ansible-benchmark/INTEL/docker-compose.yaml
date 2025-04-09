@@ -21,6 +21,7 @@ services:
     command:
       - "--config-file"
       - "/etc/sensor.json"
+      - "-o MONITOR_ONE_CPU_PER_SOCKET"
     volumes:
       - ${PWD}/sensor/hwpc-${POWERAPI_SOURCE}.json:/etc/sensor.json
       - type: bind
