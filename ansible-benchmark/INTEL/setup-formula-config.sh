@@ -32,7 +32,7 @@ JSON='{
     "cpu-error-threshold": 2.0,
     "disable-cpu-formula": false,
     "disable-dram-formula": true,
-    "sensor-reports-frequency": 500,
+    "sensor-reports-frequency": 1000,
     "cpu-tdp": 125
 }'
 
