@@ -15,9 +15,9 @@ public class JsonFixer {
             System.err.println("The input path is not a directory: " + inputFolder);
             return;
         }
-        System.out.println("Processing JSON files in folder: " + inputFolder);
+        System.out.println("Processing ONLY Scaphandre JSON files in folder: " + inputFolder);
 
-        try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(inputFolderPath, "*.json")) {
+        try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(inputFolderPath, "experiments_summary_*.json")) {
             for (Path filePath : directoryStream) {
                 String filename = filePath.getFileName().toString();
                 Path outputFilePath = inputFolderPath.resolve("fixed_" + filename);
@@ -25,80 +25,48 @@ public class JsonFixer {
 
                 System.out.println("Processing file: " + filename);
 
-                if (filename.startsWith("benchmark_results_") || filename.equals("container_info.json")) {
-                    // Handle single, complete JSON object files (Benchmark, ContainerInfo)
+                // Handle Scaphandre JSON files (potentially multiple objects)
+                JSONArray jsonArray = new JSONArray();
+                // Correctly escaped regex pattern for Java
+                Pattern pattern = Pattern.compile(
+                    "\\{\\s*\"host\"\\s*:\\s*\\{.*?\\}\\s*,\\s*\"consumers\"\\s*:\\s*\\[.*?\\]\\s*,\\s*\"sockets\"\\s*:\\s*\\[.*?\\]\\s*\\}",
+                    Pattern.DOTALL
+                );
+                Matcher matcher = pattern.matcher(content);
+                int matchCount = 0;
+                int validCount = 0;
+
+                while (matcher.find()) {
+                    matchCount++;
+                    String jsonObjectStr = matcher.group();
                     try {
-                        JSONObject jsonObject = new JSONObject(content);
-                        // Optionally add validation specific to these files if needed
-                        try (FileWriter fileWriter = new FileWriter(outputFilePath.toFile())) {
-                            fileWriter.write(jsonObject.toString(4)); // Write validated object
-                            System.out.println("Validated and wrote " + outputFilePath);
+                        jsonObjectStr = jsonObjectStr.replaceAll(",\s*}", "}");
+                        jsonObjectStr = jsonObjectStr.replaceAll(",\s*]", "]");
+                        JSONObject jsonObject = new JSONObject(jsonObjectStr);
+                        if (validateJsonStructure(jsonObject)) { // Use existing validation for Scaphandre structure
+                            jsonArray.put(jsonObject);
+                            validCount++;
+                        } else {
+                            System.out.println("Scaphandre JSON object " + matchCount + " in " + filename + " failed validation");
                         }
-                    } catch (JSONException e) {
-                        System.err.println("Error parsing " + filename + " as single JSON object: " + e.getMessage());
-                        // Optionally write an empty object or skip file creation
-                        try (FileWriter fileWriter = new FileWriter(outputFilePath.toFile())) {
-                             fileWriter.write("{}"); // Write empty object on error
-                             System.out.println("Wrote empty object to " + outputFilePath + " due to parsing error.");
-                         } catch (IOException ioEx) {
-                             System.err.println("Error writing empty object file " + outputFilePath + ": " + ioEx.getMessage());
-                         }
-                    } catch (IOException e) {
-                        System.err.println("Error writing file " + outputFilePath + ": " + e.getMessage());
+                    } catch (JSONException ex) {
+                        System.out.println("Error parsing Scaphandre JSON object " + matchCount + " in " + filename + ": " + ex.getMessage());
+                        // System.out.println("Problematic JSON string: " + jsonObjectStr.substring(0, Math.min(200, jsonObjectStr.length())) + "...");
                     }
-                } else if (filename.startsWith("experiments_summary_")) {
-                    // Handle Scaphandre JSON files (potentially multiple objects)
-                    JSONArray jsonArray = new JSONArray();
-                    // Correctly escaped regex pattern for Java
-                    Pattern pattern = Pattern.compile(
-                        "\\{\\s*\"host\"\\s*:\\s*\\{.*?\\}\\s*,\\s*\"consumers\"\\s*:\\s*\\[.*?\\]\\s*,\\s*\"sockets\"\\s*:\\s*\\[.*?\\]\\s*\\}",
-                        Pattern.DOTALL
-                    );
-                    Matcher matcher = pattern.matcher(content);
-                    int matchCount = 0;
-                    int validCount = 0;
+                }
 
-                    while (matcher.find()) {
-                        matchCount++;
-                        String jsonObjectStr = matcher.group();
-                        try {
-                            jsonObjectStr = jsonObjectStr.replaceAll(",\s*}", "}");
-                            jsonObjectStr = jsonObjectStr.replaceAll(",\s*]", "]");
-                            JSONObject jsonObject = new JSONObject(jsonObjectStr);
-                            if (validateJsonStructure(jsonObject)) { // Use existing validation for Scaphandre structure
-                                jsonArray.put(jsonObject);
-                                validCount++;
-                            } else {
-                                System.out.println("Scaphandre JSON object " + matchCount + " in " + filename + " failed validation");
-                            }
-                        } catch (JSONException ex) {
-                            System.out.println("Error parsing Scaphandre JSON object " + matchCount + " in " + filename + ": " + ex.getMessage());
-                            // System.out.println("Problematic JSON string: " + jsonObjectStr.substring(0, Math.min(200, jsonObjectStr.length())) + "...");
-                        }
-                    }
+                System.out.println("Found " + matchCount + " potential Scaphandre objects in " + filename + ", validated " + validCount);
 
-                    System.out.println("Found " + matchCount + " potential Scaphandre objects in " + filename + ", validated " + validCount);
-
-                    try (FileWriter fileWriter = new FileWriter(outputFilePath.toFile())) {
-                        fileWriter.write(jsonArray.toString(4)); // Write the array
-                        System.out.println("Fixed Scaphandre file saved to " + outputFilePath + " with " + jsonArray.length() + " entries");
-                        // Optional: Add verification for the array file as before
-                    } catch (IOException e) {
-                        System.err.println("Error writing fixed Scaphandre file " + outputFilePath + ": " + e.getMessage());
-                    }
-                } else {
-                    System.out.println("Skipping unrecognized JSON file: " + filename);
-                    // Optionally copy skipped files as-is or ignore them
-                     try {
-                         Files.copy(filePath, outputFilePath, StandardCopyOption.REPLACE_EXISTING);
-                         System.out.println("Copied unrecognized file to " + outputFilePath);
-                     } catch (IOException e) {
-                         System.err.println("Could not copy unrecognized file " + filename + ": " + e.getMessage());
-                     }
+                try (FileWriter fileWriter = new FileWriter(outputFilePath.toFile())) {
+                    fileWriter.write(jsonArray.toString(4)); // Write the array
+                    System.out.println("Fixed Scaphandre file saved to " + outputFilePath + " with " + jsonArray.length() + " entries");
+                    // Optional: Add verification for the array file as before
+                } catch (IOException e) {
+                    System.err.println("Error writing fixed Scaphandre file " + outputFilePath + ": " + e.getMessage());
                 }
             }
         } catch (IOException e) {
-            System.err.println("Error processing files in directory " + inputFolder + ": " + e.getMessage());
+            System.err.println("Error processing Scaphandre files in directory " + inputFolder + ": " + e.getMessage());
         }
     }
 
