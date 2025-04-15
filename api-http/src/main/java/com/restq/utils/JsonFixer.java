@@ -5,151 +5,145 @@ import java.nio.file.*;
 import java.util.regex.*;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.json.JSONException;
 
 public class JsonFixer {
 
     public static void fixJsonFilesInFolder(String inputFolder) {
-        // Get the input folder path
         Path inputFolderPath = Paths.get(inputFolder);
         if (!Files.isDirectory(inputFolderPath)) {
-            System.err.println("The input path is not a directory.");
+            System.err.println("The input path is not a directory: " + inputFolder);
             return;
         }
+        System.out.println("Processing JSON files in folder: " + inputFolder);
 
-        // Process each JSON file in the folder
         try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(inputFolderPath, "*.json")) {
             for (Path filePath : directoryStream) {
+                String filename = filePath.getFileName().toString();
+                Path outputFilePath = inputFolderPath.resolve("fixed_" + filename);
                 String content = new String(Files.readAllBytes(filePath));
-                JSONArray jsonArray = new JSONArray();
 
-                // Count occurrences of the pattern manually
-                int manualCount = 0;
-                int lastIndex = 0;
-                while ((lastIndex = content.indexOf("{\"host\":", lastIndex)) != -1) {
-                    manualCount++;
-                    lastIndex += 8; // Move past the current match
-                }
-                System.out.println("Manual count of JSON objects: " + manualCount);
+                System.out.println("Processing file: " + filename);
 
-                // Pattern to match each JSON object, including nested structures
-                Pattern pattern = Pattern.compile(
-                    "\\{\\s*\"host\"\\s*:\\s*\\{.*?\\}\\s*,\\s*\"consumers\"\\s*:\\s*\\[.*?\\]\\s*,\\s*\"sockets\"\\s*:\\s*\\[.*?\\]\\s*\\}",
-                    Pattern.DOTALL
-                );
-                
-                Matcher matcher = pattern.matcher(content);
-                int matchCount = 0;
-                int validCount = 0;
-                
-                while (matcher.find()) {
-                    matchCount++;
-                    String jsonObjectStr = matcher.group();
+                if (filename.startsWith("benchmark_results_") || filename.equals("container_info.json")) {
+                    // Handle single, complete JSON object files (Benchmark, ContainerInfo)
                     try {
-                        // Clean up the JSON string by removing any trailing commas
-                        jsonObjectStr = jsonObjectStr.replaceAll(",\\s*}", "}");
-                        jsonObjectStr = jsonObjectStr.replaceAll(",\\s*]", "]");
-                        
-                        JSONObject jsonObject = new JSONObject(jsonObjectStr);
-                        if (validateJsonStructure(jsonObject)) {
-                            jsonArray.put(jsonObject);
-                            validCount++;
-                            if (matchCount <= 5) { // Print first 5 entries for verification
-                                System.out.println("Entry " + matchCount + " timestamp: " + 
-                                    jsonObject.getJSONObject("host").getDouble("timestamp"));
+                        JSONObject jsonObject = new JSONObject(content);
+                        // Optionally add validation specific to these files if needed
+                        try (FileWriter fileWriter = new FileWriter(outputFilePath.toFile())) {
+                            fileWriter.write(jsonObject.toString(4)); // Write validated object
+                            System.out.println("Validated and wrote " + outputFilePath);
+                        }
+                    } catch (JSONException e) {
+                        System.err.println("Error parsing " + filename + " as single JSON object: " + e.getMessage());
+                        // Optionally write an empty object or skip file creation
+                        try (FileWriter fileWriter = new FileWriter(outputFilePath.toFile())) {
+                             fileWriter.write("{}"); // Write empty object on error
+                             System.out.println("Wrote empty object to " + outputFilePath + " due to parsing error.");
+                         } catch (IOException ioEx) {
+                             System.err.println("Error writing empty object file " + outputFilePath + ": " + ioEx.getMessage());
+                         }
+                    } catch (IOException e) {
+                        System.err.println("Error writing file " + outputFilePath + ": " + e.getMessage());
+                    }
+                } else if (filename.startsWith("experiments_summary_")) {
+                    // Handle Scaphandre JSON files (potentially multiple objects)
+                    JSONArray jsonArray = new JSONArray();
+                    // Correctly escaped regex pattern for Java
+                    Pattern pattern = Pattern.compile(
+                        "\\{\\s*\"host\"\\s*:\\s*\\{.*?\\}\\s*,\\s*\"consumers\"\\s*:\\s*\\[.*?\\]\\s*,\\s*\"sockets\"\\s*:\\s*\\[.*?\\]\\s*\\}",
+                        Pattern.DOTALL
+                    );
+                    Matcher matcher = pattern.matcher(content);
+                    int matchCount = 0;
+                    int validCount = 0;
+
+                    while (matcher.find()) {
+                        matchCount++;
+                        String jsonObjectStr = matcher.group();
+                        try {
+                            jsonObjectStr = jsonObjectStr.replaceAll(",\s*}", "}");
+                            jsonObjectStr = jsonObjectStr.replaceAll(",\s*]", "]");
+                            JSONObject jsonObject = new JSONObject(jsonObjectStr);
+                            if (validateJsonStructure(jsonObject)) { // Use existing validation for Scaphandre structure
+                                jsonArray.put(jsonObject);
+                                validCount++;
+                            } else {
+                                System.out.println("Scaphandre JSON object " + matchCount + " in " + filename + " failed validation");
                             }
-                        } else {
-                            System.out.println("JSON object " + matchCount + " failed validation");
+                        } catch (JSONException ex) {
+                            System.out.println("Error parsing Scaphandre JSON object " + matchCount + " in " + filename + ": " + ex.getMessage());
+                            // System.out.println("Problematic JSON string: " + jsonObjectStr.substring(0, Math.min(200, jsonObjectStr.length())) + "...");
                         }
-                    } catch (Exception ex) {
-                        System.out.println("Error parsing JSON object " + matchCount + " in file " + filePath.getFileName() + 
-                                         ": " + ex.getMessage());
-                        // Print the problematic JSON string for debugging
-                        System.out.println("Problematic JSON string: " + jsonObjectStr.substring(0, Math.min(200, jsonObjectStr.length())) + "...");
                     }
-                }
-                
-                if (matchCount == 0) {
-                    System.out.println("No valid JSON objects found in file " + filePath.getFileName());
-                    // Print a sample of the content for debugging
-                    System.out.println("Content sample: " + content.substring(0, Math.min(200, content.length())) + "...");
-                } else {
-                    System.out.println("Found " + matchCount + " JSON objects in file " + filePath.getFileName());
-                    System.out.println("Successfully validated: " + validCount + " objects");
-                    System.out.println("Manual count: " + manualCount);
-                    if (matchCount != manualCount) {
-                        System.out.println("WARNING: Manual count differs from regex count!");
-                    }
-                    if (validCount != matchCount) {
-                        System.out.println("WARNING: Some objects failed validation!");
-                    }
-                }
 
-                // Write the fixed content to the output file in the same folder
-                Path outputFilePath = inputFolderPath.resolve("fixed_" + filePath.getFileName());
-                try (FileWriter fileWriter = new FileWriter(outputFilePath.toFile())) {
-                    fileWriter.write(jsonArray.toString(4)); // Indented output for readability
-                    System.out.println("File fixed successfully and saved to " + outputFilePath + 
-                                     " with " + jsonArray.length() + " entries");
-                    
-                    // Verify the output file
-                    try {
-                        String outputContent = new String(Files.readAllBytes(outputFilePath));
-                        JSONArray verifyArray = new JSONArray(outputContent);
-                        System.out.println("Verification - Number of entries in output file: " + verifyArray.length());
-                        if (verifyArray.length() != validCount) {
-                            System.out.println("WARNING: Output file entry count differs from valid count!");
-                        }
-                    } catch (Exception e) {
-                        System.out.println("Warning: Could not verify output file: " + e.getMessage());
+                    System.out.println("Found " + matchCount + " potential Scaphandre objects in " + filename + ", validated " + validCount);
+
+                    try (FileWriter fileWriter = new FileWriter(outputFilePath.toFile())) {
+                        fileWriter.write(jsonArray.toString(4)); // Write the array
+                        System.out.println("Fixed Scaphandre file saved to " + outputFilePath + " with " + jsonArray.length() + " entries");
+                        // Optional: Add verification for the array file as before
+                    } catch (IOException e) {
+                        System.err.println("Error writing fixed Scaphandre file " + outputFilePath + ": " + e.getMessage());
                     }
+                } else {
+                    System.out.println("Skipping unrecognized JSON file: " + filename);
+                    // Optionally copy skipped files as-is or ignore them
+                     try {
+                         Files.copy(filePath, outputFilePath, StandardCopyOption.REPLACE_EXISTING);
+                         System.out.println("Copied unrecognized file to " + outputFilePath);
+                     } catch (IOException e) {
+                         System.err.println("Could not copy unrecognized file " + filename + ": " + e.getMessage());
+                     }
                 }
             }
         } catch (IOException e) {
-            System.err.println("Error processing files in directory: " + e.getMessage());
+            System.err.println("Error processing files in directory " + inputFolder + ": " + e.getMessage());
         }
     }
 
     private static boolean validateJsonStructure(JSONObject jsonObject) {
         try {
-            // Validate top-level fields
             if (!jsonObject.has("host") || !jsonObject.has("consumers") || !jsonObject.has("sockets")) {
-                System.out.println("Missing required top-level fields");
+                // System.out.println("Missing required Scaphandre top-level fields");
                 return false;
             }
-
-            // Validate host object
             JSONObject host = jsonObject.getJSONObject("host");
-            if (!host.has("consumption") || !host.has("timestamp") || !host.has("components")) {
-                System.out.println("Missing required host fields");
+            if (!host.has("consumption") || !host.has("timestamp")) { // Removed 'components' check for broader compatibility if needed
+                // System.out.println("Missing required Scaphandre host fields");
                 return false;
             }
-
-            // Validate consumers array
             JSONArray consumers = jsonObject.getJSONArray("consumers");
             for (int i = 0; i < consumers.length(); i++) {
                 JSONObject consumer = consumers.getJSONObject(i);
-                if (!consumer.has("exe") || !consumer.has("cmdline") || !consumer.has("pid") || 
-                    !consumer.has("consumption") || !consumer.has("timestamp")) {
-                    System.out.println("Missing required consumer fields at index " + i);
+                if (!consumer.has("exe") || /*!consumer.has("cmdline") ||*/ !consumer.has("pid") ||
+                    !consumer.has("consumption") || !consumer.has("timestamp")) { // cmdline might be empty
+                    // System.out.println("Missing required Scaphandre consumer fields at index " + i);
                     return false;
                 }
             }
-
-            // Validate sockets array
             JSONArray sockets = jsonObject.getJSONArray("sockets");
             for (int i = 0; i < sockets.length(); i++) {
                 JSONObject socket = sockets.getJSONObject(i);
                 if (!socket.has("id") || !socket.has("consumption") || !socket.has("timestamp")) {
-                    System.out.println("Missing required socket fields at index " + i);
+                    // System.out.println("Missing required Scaphandre socket fields at index " + i);
                     return false;
                 }
             }
-
             return true;
-        } catch (Exception e) {
-            System.out.println("Error validating JSON structure: " + e.getMessage());
+        } catch (JSONException e) {
+            System.out.println("Error validating Scaphandre JSON structure: " + e.getMessage());
             return false;
         }
     }
+
+    // Optional: Main method for testing the fixer independently
+    // public static void main(String[] args) {
+    //     if (args.length < 1) {
+    //         System.err.println("Usage: java com.restq.utils.JsonFixer <inputDirectory>");
+    //         System.exit(1);
+    //     }
+    //     fixJsonFilesInFolder(args[0]);
+    // }
 }
 
