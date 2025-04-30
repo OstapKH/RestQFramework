@@ -37,19 +37,86 @@ The primary application code is located within the `com.restq` package, with mod
         - `Controller.java`: Functions as the central controller defining endpoints that correspond to specific TPC-H benchmark queries. Each `@GetMapping` method typically accepts query parameters (`@RequestParam`) needed for a TPC-H query (like dates, regions, market segments, brands) and returns a specific DTO containing the query results.
             *Example Endpoint:*
             ```java
-            @GetMapping("/pricing-summary") // Corresponds to TPC-H Query 1
+            @GetMapping({"/pricing-summary"}) // Corresponds to TPC-H Query 1
             public List<PricingSummaryReport> getPricingSummary(
-                @RequestParam(value = "delta", required = false) Integer delta, 
-                @RequestParam(value = "shipDate", defaultValue = "1998-12-01") LocalDate shipDate) {
-                // ... calls lineItemRepository.getPricingSummaryReport ...
+                @RequestParam(value = "delta",required = false) Integer delta, 
+                @RequestParam(value = "shipDate",defaultValue = "1998-12-01") LocalDate shipDate) {
+               if (delta == null || delta == 0 || delta > 120) {
+                  Random random = new Random();
+                  delta = 60 + random.nextInt(61); // Default delta logic if not provided or invalid
+               }
+         
+               LocalDate endDate = shipDate.plusDays((long)delta);
+               return this.lineItemRepository.getPricingSummaryReport(endDate);
             }
             ```
         - `RequestLoggingInterceptor.java`: Implements a Spring interceptor for logging details of incoming HTTP requests.
     - **`Repositories`**: Contains Spring Data JPA repository interfaces (e.g., `CustomerRepository`, `LineItemRepository`, `OrderRepository`) extending `JpaRepository` or similar. These interfaces are the data access layer, interacting with the entities defined in the `core` module. They contain numerous custom query methods, often defined using the `@Query` annotation or derived from method names, which encapsulate the JPQL or native SQL logic required to execute the specific TPC-H benchmark queries against the database.
-        *Example:* `LineItemRepository` provides methods to query the `LineItem` entity, including complex aggregations needed for reports like the Pricing Summary (TPC-H Query 1) or Revenue Increase calculation (TPC-H Query 6).
+        *Example (`LineItemRepository.java` excerpt):*
+        ```java
+        @Repository
+        public interface LineItemRepository extends JpaRepository<LineItem, Long> {
+        
+            @Query("""
+                    SELECT new com.restq.api_http.DTO.PricingSummaryReport(\
+                    l.returnFlag, l.lineStatus, \
+                    SUM(l.quantity), SUM(l.extendedPrice), \
+                    SUM(l.extendedPrice * (1 - l.discount)), \
+                    SUM(l.extendedPrice * (1 - l.discount) * (1 + l.tax)), \
+                    AVG(l.quantity), AVG(l.extendedPrice), \
+                    AVG(l.discount), COUNT(l) \
+                    ) FROM LineItem l \
+                    WHERE l.shipDate <= :shipDate \
+                    GROUP BY l.returnFlag, l.lineStatus \
+                    ORDER BY l.returnFlag, l.lineStatus""")
+            // Corresponds to TPC-H Query 1
+            List<PricingSummaryReport> getPricingSummaryReport(@Param("shipDate") LocalDate shipDate);
+        
+            // ... other query methods for different TPC-H queries ...
+        }
+        ```
     - **`DTO` (Data Transfer Objects)**: Represents Plain Old Java Objects (POJOs) specifically designed for the API's request and response data structures. They define the shape of the data returned by the API endpoints, effectively representing the results of the executed TPC-H queries. Using DTOs decouples the API's external contract from the internal database entity structure.
-        *Examples:* 
-          - `PricingSummaryReport`: Contains fields representing the aggregated results for TPC-H Query 1.
+        *Example (`PricingSummaryReport.java` - structure inferred from Repository query):*
+        ```java
+        package com.restq.api_http.DTO;
+
+        import java.math.BigDecimal;
+
+        // Represents the results of TPC-H Query 1
+        public class PricingSummaryReport {
+            private String returnFlag;
+            private String lineStatus;
+            private BigDecimal sumQty;
+            private BigDecimal sumBasePrice;
+            private BigDecimal sumDiscPrice;
+            private BigDecimal sumCharge;
+            private BigDecimal avgQty;
+            private BigDecimal avgPrice;
+            private BigDecimal avgDisc;
+            private Long countOrder;
+
+            // Constructor matching the new(...) expression in the @Query
+            public PricingSummaryReport(String returnFlag, String lineStatus, 
+                                        BigDecimal sumQty, BigDecimal sumBasePrice, 
+                                        BigDecimal sumDiscPrice, BigDecimal sumCharge, 
+                                        BigDecimal avgQty, BigDecimal avgPrice, 
+                                        BigDecimal avgDisc, Long countOrder) {
+                this.returnFlag = returnFlag;
+                this.lineStatus = lineStatus;
+                this.sumQty = sumQty;
+                this.sumBasePrice = sumBasePrice;
+                this.sumDiscPrice = sumDiscPrice;
+                this.sumCharge = sumCharge;
+                this.avgQty = avgQty;
+                this.avgPrice = avgPrice;
+                this.avgDisc = avgDisc;
+                this.countOrder = countOrder;
+            }
+
+            // Getters for all fields...
+        }
+        ```
+        *Other Examples:* 
           - `OrderPriorityCountInfo`: Holds the counts for TPC-H Query 4.
           - `MarketShareReport`: Structures the market share percentage data for TPC-H Query 8.
           - `ReturnedItemReport`: Formats the results for TPC-H Query 10.
