@@ -116,7 +116,7 @@ The primary application code is located within the `com.restq` package, with mod
             // Getters for all fields...
         }
         ```
-        *Other Examples:* 
+      *Other Examples:*
           - `OrderPriorityCountInfo`: Holds the counts for TPC-H Query 4.
           - `MarketShareReport`: Structures the market share percentage data for TPC-H Query 8.
           - `ReturnedItemReport`: Formats the results for TPC-H Query 10.
